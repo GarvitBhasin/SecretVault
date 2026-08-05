@@ -1,6 +1,6 @@
 import typer
 from auth import auth_app
-from secrets import secrets_app
+from secret import secrets_app
 from projects import projects_app
 from logs import logs_app
 

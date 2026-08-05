@@ -17,18 +17,28 @@ def register(
         "confirm": confirm,
     }
 
-    response = requests.post("/register", json=payload)
+    response = requests.post("http://127.0.0.1:8000/register", json=payload)
 
-    if response.ok:
-        print("Account successfully created.")
-    else:
-        print(response.json())
+    
+    print(response.status_code)
+    print(response.text)
 
-@auth_app.command
-def login(username: str, password: str):
-    pass
+@auth_app.command()
+def login(
+    email: str = typer.Option(..., prompt=True),
+    password: str = typer.Option(..., prompt=True, hide_input=True)
+):
+    payload = {
+        "email": email,
+        "password": password
+    }
 
-@auth_app.command
+    response = requests.post("http://127.0.0.1:8000/login", json=payload)
+
+    print(response.status_code)
+    print(response.text)
+
+@auth_app.command()
 def logout():
     pass
     
