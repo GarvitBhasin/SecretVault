@@ -1,4 +1,5 @@
 import typer
+import requests
 
 secrets_app = typer.Typer()
 

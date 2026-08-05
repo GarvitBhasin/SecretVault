@@ -1,4 +1,5 @@
 import typer
+import requests
 
 logs_app = typer.Typer()
 

@@ -1,4 +1,5 @@
 import typer
+import requests
 
 projects_app = typer.Typer()
 
