@@ -1,5 +1,5 @@
-import typer
-import requests
+import typer, os
+from helpers import *
 
 auth_app = typer.Typer()
 
@@ -17,11 +17,15 @@ def register(
         "confirm": confirm,
     }
 
-    response = requests.post("http://127.0.0.1:8000/register", json=payload)
+    response = send_request("/register", payload)
 
-    
-    print(response.status_code)
-    print(response.text)
+    with open(".session", "w") as file:
+        file.write(response.json()["token"])
+
+    if response.ok:
+        print(response.json()["message"])
+    else:
+        print(response.json()["detail"])
 
 @auth_app.command()
 def login(
@@ -33,14 +37,42 @@ def login(
         "password": password
     }
 
-    response = requests.post("http://127.0.0.1:8000/login", json=payload)
+    response = send_request("/login", payload)
 
-    print(response.status_code)
-    print(response.text)
+    with open(".session", "w") as file:
+        file.write(response.json()["token"])
+
+    print(response.json()["message"])
 
 @auth_app.command()
 def logout():
-    pass
+
+    if os.path.exists(".session"):
+        os.remove(".session")
+        print("Logged out successfully.")
+    else:
+        print("Please log in first")
+
+@auth_app.command()
+def me():
+
+    token = get_session()
+
+    if token is not None:
+        response = send_request("/me", {"token": token})
+
+        print(f"Username: {response.json()["username"]}")
+        print(f"Email: {response.json()["email"]}")
+
+@auth_app.command()
+def delete():
+
+    token = get_session()
     
-if __name__ == '__main__':
-    auth_app()
+    response = send_request("/delete", { "token": token })
+
+    if response.ok:
+        os.remove(".session")
+        print(response.json()["message"])
+    else:
+        print(response.json()["detail"])

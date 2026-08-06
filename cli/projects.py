@@ -18,6 +18,3 @@ def edit():
 @projects_app.command
 def list():
     pass
-    
-if __name__ == '__main__':
-    projects_app()

@@ -22,6 +22,3 @@ def list():
 @secrets_app.command
 def get():
     pass
-    
-if __name__ == '__main__':
-    secrets_app()
