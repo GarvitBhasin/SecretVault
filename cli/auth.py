@@ -10,48 +10,37 @@ def register(
     password: str = typer.Option(..., prompt=True, hide_input=True),
     confirm: str = typer.Option(..., prompt=True, hide_input=True),
 ):
-    payload = {
+    response = send_request("/register", {
         "username": username,
         "email": email,
         "password": password,
         "confirm": confirm,
-    }
-
-    response = send_request("/register", payload)
-
-    with open(".session", "w") as file:
-        file.write(response.json()["token"])
+    })
 
     if response.ok:
-        print(response.json()["message"])
-    else:
-        print(response.json()["detail"])
+        add_session(response)
+
+    display_message(response)
 
 @auth_app.command()
 def login(
     email: str = typer.Option(..., prompt=True),
     password: str = typer.Option(..., prompt=True, hide_input=True)
 ):
-    payload = {
-        "email": email,
-        "password": password
-    }
 
-    response = send_request("/login", payload)
+    response = send_request("/login", {
+            "email": email,
+            "password": password,
+    })
 
-    with open(".session", "w") as file:
-        file.write(response.json()["token"])
+    if response.ok:
+        add_session(response)
 
-    print(response.json()["message"])
+    display_message(response)
 
 @auth_app.command()
 def logout():
-
-    if os.path.exists(".session"):
-        os.remove(".session")
-        print("Logged out successfully.")
-    else:
-        print("Please log in first")
+    remove_session()
 
 @auth_app.command()
 def me():
@@ -68,11 +57,10 @@ def me():
 def delete():
 
     token = get_session()
-    
-    response = send_request("/delete", { "token": token })
 
-    if response.ok:
-        os.remove(".session")
-        print(response.json()["message"])
-    else:
-        print(response.json()["detail"])
+    if token is not None:
+        response = send_request("/delete", {"token": token})
+        if response.ok:
+            os.remove(".session")
+
+        display_message(response)

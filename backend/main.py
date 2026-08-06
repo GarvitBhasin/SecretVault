@@ -62,7 +62,7 @@ def register(data: RegisterRequest):
     if data.confirm != data.password:
         raise HTTPException(
             status_code=400,
-            detail="Confirm password does not match original password."
+            detail="Passwords do not match."
         )
 
     # Check password strength
@@ -141,7 +141,7 @@ def login(data: LoginRequest):
         if result is None:
             raise HTTPException(
                 status_code=401,
-                detail="Incorrect email or password"
+                detail="Incorrect email or password."
             )
 
         stored_hash, id = result
@@ -152,16 +152,16 @@ def login(data: LoginRequest):
         if not is_valid:
             raise HTTPException(
                 status_code=401,
-                detail="Incorrect email or password"
+                detail="Incorrect email or password."
             )
 
         # Return token and message
-        token = encode_token({ "sub": str(id) })
+        token = encode_token({"sub": str(id)})
         
         return {
             "token": token,
             "token_type": "bearer",
-            "message": "Successfully logged in."
+            "message": "Logged in."
         }
     finally:
         session.close()
@@ -192,7 +192,7 @@ def me(data: TokenRequest):
     finally:
         session.close()
 
-@app.delete("/delete")
+@app.post("/delete")
 def delete_user(data: TokenRequest):
     payload = decode_token(data.token)
     id = int(payload["sub"])
@@ -210,7 +210,7 @@ def delete_user(data: TokenRequest):
             )
 
         return {
-            "message": "Account successfully deleted."
+            "message": "Account deleted."
         }
     except:
         session.rollback()
