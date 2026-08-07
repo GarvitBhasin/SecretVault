@@ -10,7 +10,7 @@ def register(
     password: str = typer.Option(..., prompt=True, hide_input=True),
     confirm: str = typer.Option(..., prompt=True, hide_input=True),
 ):
-    response = send_request("/register", {
+    response = send_request("post", "/register", {
         "username": username,
         "email": email,
         "password": password,
@@ -28,7 +28,7 @@ def login(
     password: str = typer.Option(..., prompt=True, hide_input=True)
 ):
 
-    response = send_request("/login", {
+    response = send_request("post", "/login", {
             "email": email,
             "password": password,
     })
@@ -48,7 +48,7 @@ def me():
     token = get_session()
 
     if token is not None:
-        response = send_request("/me", {"token": token})
+        response = send_request("get", "/me", {"token": token})
 
         print(f"Username: {response.json()["username"]}")
         print(f"Email: {response.json()["email"]}")
@@ -59,7 +59,7 @@ def delete():
     token = get_session()
 
     if token is not None:
-        response = send_request("/delete", {"token": token})
+        response = send_request("delete", "/delete", {"token": token}) 
         if response.ok:
             os.remove(".session")
 

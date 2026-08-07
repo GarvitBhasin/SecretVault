@@ -1,9 +1,11 @@
 import os, requests
 from rich.console import Console 
+from rich.table import Table, box
 from dotenv import load_dotenv
 load_dotenv()
-console = Console()
 
+console = Console()
+table = Table(title="Projects", header_style="bold", expand=True, show_lines=True, box=box.ROUNDED)
 backend_url = os.getenv("APP_URL")
 
 def get_session():
@@ -27,13 +29,31 @@ def add_session(response):
     with open(".session", "w") as file:
         file.write(response.json()["token"])
 
-def send_request(endpoint, payload):
-    response = requests.post(f"{backend_url}{endpoint}", json=payload)
-
-    return response
+def send_request(method, endpoint, payload):
+    return requests.request(
+        method, 
+        f"{backend_url}{endpoint}",
+        json=payload
+    )
 
 def display_message(response):
     if response.ok:
         console.print(f"[green]Success: [/green]{response.json()["message"]}")
     else:
         console.print(f"[red]Error: [/red]{response.json()["detail"]}")
+
+def display_table(projects):
+    table.add_column("ID")
+    table.add_column("Name")
+    table.add_column("Creator")
+    table.add_column("Secrets")
+
+    for project in projects:
+        table.add_row(
+            project["id"],
+            project["name"],
+            project["creator"],
+            project["secrets"]
+        )
+
+    console.print(table)

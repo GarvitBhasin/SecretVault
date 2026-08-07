@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, sessionmaker
-from sqlalchemy import String, create_engine, select, delete
+from sqlalchemy import String, ForeignKey, create_engine, select, delete, func
 from pydantic import BaseModel
 from pwdlib import PasswordHash
 from backend.token import *
@@ -27,6 +27,21 @@ class Users(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
 
+class Projects(Base):
+    __tablename__ = "projects"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(25), nullable=False)
+    creator_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+
+class Secrets(Base):
+    __tablename__ = "secrets"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(25), nullable=False)
+    creator_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+
 Base.metadata.create_all(engine)
 
 # REQUEST TEMPLATES
@@ -43,6 +58,10 @@ class LoginRequest(BaseModel):
 
 class TokenRequest(BaseModel):
     token: str
+
+class CreateRequest(BaseModel):
+    token: str
+    name: str
 
 # AUTH
 
@@ -105,9 +124,9 @@ def register(data: RegisterRequest):
 
         # Create user
         user = Users(
-            username=data.username,
-            email=data.email,
-            password_hash=hashed_pass,
+            username = data.username,
+            email = data.email,
+            password_hash = hashed_pass,
         )
     
         session.add(user)
@@ -121,15 +140,15 @@ def register(data: RegisterRequest):
         return {
             "token": token,
             "token_type": "bearer",
-            "message": "Account created successfully."
+            "message": "Account created."
         }
-    except:
+    except Exception:
         session.rollback()
         raise
     finally:
         session.close()
 
-@app.post("/login", status_code=200)
+@app.post("/login")
 def login(data: LoginRequest):
 
     try:
@@ -163,10 +182,13 @@ def login(data: LoginRequest):
             "token_type": "bearer",
             "message": "Logged in."
         }
+    except Exception:
+        session.rollback()
+        raise
     finally:
         session.close()
 
-@app.post("/me", status_code=200)
+@app.get("/me")
 def me(data: TokenRequest):
     payload = decode_token(data.token)
     id = int(payload["sub"])
@@ -212,8 +234,73 @@ def delete_user(data: TokenRequest):
         return {
             "message": "Account deleted."
         }
-    except:
+    except Exception:
         session.rollback()
         raise
+    finally:
+        session.close()
+
+# PROJECTS
+
+@app.post("/create-project", status_code=201)
+def create_project(data: CreateRequest):
+
+    payload = decode_token(data.token)
+    id = int(payload["sub"])
+
+    try:
+        session = SessionLocal()
+
+        project = Projects(
+            name = data.name,
+            creator_id = id
+        )
+
+        session.add(project)
+        session.commit()
+
+        return {
+            "message": "Project created."
+        }
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+@app.get("/list-projects")
+def list_projects(data: TokenRequest):
+
+    payload = decode_token(data.token)
+    id = int(payload["sub"])
+
+    try:
+        session = SessionLocal()
+
+        projects = session.execute(select(Projects.id, Projects.name, Users.username).join(Users, Projects.creator_id == Users.id).order_by(Projects.id.asc())).all()
+        secrets_sum = session.execute(select(Projects.id, func.count(Secrets.project_id)).select_from(Projects).outerjoin(Secrets, Projects.id == Secrets.project_id).group_by(Projects.id).order_by(Projects.id.asc())).all()
+
+        if len(projects) == 0:
+            raise HTTPException(
+                status_code=404,
+                detail="No projects found."
+            )
+
+        project_list = []
+
+        for index, project in enumerate(projects):
+
+            project_list.append({
+                "id": str(project.id),
+                "name": project.name,
+                "creator": project.username,
+                "secrets": str(secrets_sum[index][1])
+            })
+
+        return {
+            "list": project_list,
+            "message": "Loaded projects."
+        }
+
     finally:
         session.close()
