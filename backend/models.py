@@ -1,7 +1,8 @@
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase
-from sqlalchemy import String, ForeignKey, create_engine
+from sqlalchemy import String, Text, DateTime, ForeignKey, create_engine
 from pydantic import BaseModel
 from dotenv import load_dotenv
+from datetime import datetime
 import os
 
 load_dotenv()
@@ -33,8 +34,11 @@ class Secrets(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(25), nullable=False)
+    value: Mapped[str] = mapped_column(Text, nullable=False)
     creator_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 
 Base.metadata.create_all(engine)
 
@@ -60,3 +64,14 @@ class CreateRequest(BaseModel):
 class IDRequest(BaseModel):
     token: str
     id: str
+
+class EditRequest(BaseModel):
+    token: str
+    id: str
+    name: str
+
+class CreateSecretRequest(BaseModel):
+    id: str
+    name: str
+    value: str
+    token: str

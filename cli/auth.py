@@ -27,7 +27,6 @@ def login(
     email: str = typer.Option(..., prompt=True),
     password: str = typer.Option(..., prompt=True, hide_input=True)
 ):
-
     response = send_request("post", "/login", {
             "email": email,
             "password": password,

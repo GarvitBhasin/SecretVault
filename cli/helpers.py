@@ -21,7 +21,7 @@ def get_session():
 def remove_session():
     if os.path.exists(".session"):
         os.remove(".session")
-        console.print("[green]Success[/green]: Logged out .")
+        console.print("[green]Success[/green]: Logged out.")
     else:
         console.print("[red]Error[/red]: No user is logged in.")
 
@@ -42,7 +42,7 @@ def display_message(response):
     else:
         console.print(f"[red]Error[/red]: {response.json()["detail"]}")
 
-def display_table(projects):
+def display_projects_table(projects):
     table.add_column("ID")
     table.add_column("Name")
     table.add_column("Creator")
@@ -62,3 +62,23 @@ def redisplay_prompt(variable, prompt):
     if variable is None:
         variable = typer.prompt(prompt)
     return variable
+
+def display_secrets_table(secrets):
+    table.add_column("ID")
+    table.add_column("Name")
+    table.add_column("Value")
+    table.add_column("Creator")
+    table.add_column("Created Date")
+    table.add_column("Last Updated")
+
+    for secret in secrets: 
+        table.add_row(
+            secret["id"],
+            secret["name"],
+            secret["value"],
+            secret["creator"],
+            secret["created_at"],
+            secret["updated_at"],
+        )
+
+    console.print(table)

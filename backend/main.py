@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import select, delete, func
+from sqlalchemy import select, delete, update, func
 from pwdlib import PasswordHash
 from dotenv import load_dotenv
 from backend.security import *
@@ -231,7 +231,6 @@ def list_projects(data: TokenRequest):
 
 @app.delete("/delete-project")
 def delete_project(data: IDRequest):
-
     try:
         session = SessionLocal()
 
@@ -254,5 +253,73 @@ def delete_project(data: IDRequest):
         session.close()
 
 @app.patch("/edit-project")
-def edit_project(data: IDRequest):
-    id = 4
+def edit_project(data: EditRequest):
+
+    try:
+        session = SessionLocal()
+
+        id = verify_user(data.token, session)
+
+        result = session.execute(update(Projects)
+            .where(Projects.id == int(data.id))
+            .values(name = data.name)
+        )
+        session.commit()
+
+        if result.rowcount == 0:
+            raise_error(404, "Project not found.")
+
+        return {
+            "message": "Project edited."
+        }
+
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+@app.get("/open-project")
+def open_project(data: IDRequest):
+    try:
+        session = SessionLocal()
+
+        id = verify_user(data.token, session)
+
+        secrets = session.execute(
+            select(
+                Secrets, Users.username
+            )
+            .where(Secrets.project_id == int(data.id))
+            .join(Users, Users.id == Secrets.creator_id)
+            .order_by(Secrets.updated_at.desc())
+        ).all()
+
+        if len(secrets) == 0:
+            raise_error(404, "No secrets found.")
+
+        secrets_list = []
+        
+        for secret, username in secrets:
+
+            secrets_list.append({
+                "id": str(secret.id),
+                "name": secret.name,
+                "value": secret.value,
+                "creator": username,
+                "created_at": str(secret.created_at),
+                "updated_at": str(secret.updated_at),
+            })
+
+        return {
+            "secrets": secrets_list,
+            "message": "Loaded secrets."
+        }
+
+    finally:
+        session.close()
+
+# SECRETS
+
+@app.get("/open-project")
+def open_project(data: IDRequest):
