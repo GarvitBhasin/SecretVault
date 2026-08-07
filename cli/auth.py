@@ -50,8 +50,7 @@ def me():
     if token is not None:
         response = send_request("get", "/me", {"token": token})
 
-        print(f"Username: {response.json()["username"]}")
-        print(f"Email: {response.json()["email"]}")
+        display_message(response)
 
 @auth_app.command()
 def delete():

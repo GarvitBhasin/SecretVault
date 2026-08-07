@@ -1,67 +1,17 @@
-from fastapi import FastAPI, HTTPException
-from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, sessionmaker
-from sqlalchemy import String, ForeignKey, create_engine, select, delete, func
-from pydantic import BaseModel
+from fastapi import FastAPI
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import select, delete, func
 from pwdlib import PasswordHash
-from backend.token import *
 from dotenv import load_dotenv
-load_dotenv()
+from backend.security import *
+from backend.models import *
 import re, os
 
-database_url = os.getenv("DB_URL")
+
+load_dotenv()
 app = FastAPI()
-engine = create_engine(database_url)
 SessionLocal = sessionmaker(bind=engine)
 password_hash = PasswordHash.recommended()
-
-# DB MODELS
-
-class Base(DeclarativeBase):
-    pass
-
-class Users(Base):
-    __tablename__ = "users"
-
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    username: Mapped[str] = mapped_column(String(25), unique=True, nullable=False)
-    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
-    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-
-class Projects(Base):
-    __tablename__ = "projects"
-
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(String(25), nullable=False)
-    creator_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-
-class Secrets(Base):
-    __tablename__ = "secrets"
-
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(String(25), nullable=False)
-    creator_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
-
-Base.metadata.create_all(engine)
-
-# REQUEST TEMPLATES
-
-class RegisterRequest(BaseModel):
-    username: str
-    email: str
-    password: str
-    confirm: str
-
-class LoginRequest(BaseModel):
-    email: str
-    password: str
-
-class TokenRequest(BaseModel):
-    token: str
-
-class CreateRequest(BaseModel):
-    token: str
-    name: str
 
 # AUTH
 
@@ -72,17 +22,12 @@ def register(data: RegisterRequest):
     email_valid = bool(re.match(r"^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$", data.email))
 
     if not email_valid:
-        raise HTTPException(
-            status_code=422,
-            detail="Invalid email."
-        )
+        raise_error(400, "Invalid email.")
 
     # Check password pairs
     if data.confirm != data.password:
-        raise HTTPException(
-            status_code=400,
-            detail="Passwords do not match."
-        )
+        raise_error(400, "Passwords do not match.")
+        
 
     # Check password strength
     has_char = any(char.isalpha() for char in data.password)
@@ -91,10 +36,7 @@ def register(data: RegisterRequest):
     is_long = len(data.password) > 8
 
     if not (has_char and has_digit and has_symbol and is_long):
-        raise HTTPException(
-            status_code=422,
-            detail="Password must have at least one character, digit, symbol and be more than 8 characters long."
-        )
+        raise_error(422, "Password must have at least one character, digit, symbol and must be more than 8 characters long.")
 
     try:
         session = SessionLocal()
@@ -109,15 +51,9 @@ def register(data: RegisterRequest):
         ).scalar_one_or_none()
 
         if existing_email:
-            raise HTTPException(
-                status_code=409,
-                detail="Email is already registered."
-            ) 
+            raise_error(409, "Email already registered.") 
         if existing_username:
-            raise HTTPException(
-                status_code=409,
-                detail="Username taken."
-            ) 
+            raise_error(409, "Username taken.") 
 
         # Hash password
         hashed_pass = password_hash.hash(data.password)
@@ -158,10 +94,7 @@ def login(data: LoginRequest):
         result = session.execute(select(Users.password_hash, Users.id).where(Users.email == data.email)).first()
 
         if result is None:
-            raise HTTPException(
-                status_code=401,
-                detail="Incorrect email or password."
-            )
+            raise_error(401, "Incorrect email or password.")
 
         stored_hash, id = result
 
@@ -169,10 +102,7 @@ def login(data: LoginRequest):
         is_valid = password_hash.verify(data.password, stored_hash)
 
         if not is_valid:
-            raise HTTPException(
-                status_code=401,
-                detail="Incorrect email or password."
-            )
+            raise_error(401, "Incorrect email or password.")
 
         # Return token and message
         token = encode_token({"sub": str(id)})
@@ -190,25 +120,20 @@ def login(data: LoginRequest):
 
 @app.get("/me")
 def me(data: TokenRequest):
-    payload = decode_token(data.token)
-    id = int(payload["sub"])
-
     try:
         session = SessionLocal()
+
+        id = verify_user(data.token, session)
 
         result = session.execute(select(Users.username, Users.email).where(Users.id == id)).first()
 
         if result is None:
-            raise HTTPException(
-                status_code=404,
-                detail="User not found."
-            )
+            raise_error(404, "User not found.")
 
         username, email = result
 
         return {
-            "username": username,
-            "email": email,
+            "message": f"Loaded user details.\nUsername: {username}\nEmail: {email}",
         }
 
     finally:
@@ -216,20 +141,16 @@ def me(data: TokenRequest):
 
 @app.post("/delete")
 def delete_user(data: TokenRequest):
-    payload = decode_token(data.token)
-    id = int(payload["sub"])
-
     try:
         session = SessionLocal()
+
+        id = verify_user(data.token, session)
 
         result = session.execute(delete(Users).where(Users.id == id))
         session.commit()
 
         if result.rowcount == 0:
-            raise HTTPException(
-                status_code=404,
-                detail="User not found."
-            )
+            raise_error(404, "User not found.")
 
         return {
             "message": "Account deleted."
@@ -244,12 +165,10 @@ def delete_user(data: TokenRequest):
 
 @app.post("/create-project", status_code=201)
 def create_project(data: CreateRequest):
-
-    payload = decode_token(data.token)
-    id = int(payload["sub"])
-
     try:
         session = SessionLocal()
+
+        id = verify_user(data.token, session)
 
         project = Projects(
             name = data.name,
@@ -270,21 +189,26 @@ def create_project(data: CreateRequest):
 
 @app.get("/list-projects")
 def list_projects(data: TokenRequest):
-
-    payload = decode_token(data.token)
-    id = int(payload["sub"])
-
     try:
         session = SessionLocal()
 
-        projects = session.execute(select(Projects.id, Projects.name, Users.username).join(Users, Projects.creator_id == Users.id).order_by(Projects.id.asc())).all()
-        secrets_sum = session.execute(select(Projects.id, func.count(Secrets.project_id)).select_from(Projects).outerjoin(Secrets, Projects.id == Secrets.project_id).group_by(Projects.id).order_by(Projects.id.asc())).all()
+        id = verify_user(data.token, session)
+
+        projects = session.execute(
+            select(Projects.id, Projects.name, Users.username)
+                .join(Users, Projects.creator_id == Users.id)
+                .order_by(Projects.id.asc())
+        ).all()
+  
+        secrets_sum = session.execute(
+            select(Projects.id, func.count(Secrets.project_id))
+                .select_from(Projects)
+                .outerjoin(Secrets, Projects.id == Secrets.project_id)
+                .group_by(Projects.id).order_by(Projects.id.asc())
+        ).all()
 
         if len(projects) == 0:
-            raise HTTPException(
-                status_code=404,
-                detail="No projects found."
-            )
+            raise_error(404, "No projects found.")
 
         project_list = []
 
@@ -304,3 +228,31 @@ def list_projects(data: TokenRequest):
 
     finally:
         session.close()
+
+@app.delete("/delete-project")
+def delete_project(data: IDRequest):
+
+    try:
+        session = SessionLocal()
+
+        id = verify_user(data.token, session)
+
+        project = session.execute(delete(Projects).where(Projects.id == int(data.id)))
+        session.commit()
+        
+        if project.rowcount == 0:
+            raise_error(404, "Project not found.")
+
+        return {
+            "message": "Project deleted."
+        }
+
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+@app.patch("/edit-project")
+def edit_project(data: IDRequest):
+    id = 4
