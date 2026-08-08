@@ -38,8 +38,8 @@ def delete(
 
 @projects_app.command()
 def edit(
-    project_id: str = typer.Option(..., prompt="Enter project ID:"),
-    name: str = typer.Option(..., prompt="Enter new project name:")
+    project_id: str = typer.Option(..., prompt="Enter project ID"),
+    name: str = typer.Option(..., prompt="Enter new project name")
 ):
     token = get_session()
 
@@ -63,21 +63,4 @@ def list():
 
         if response.ok:
             display_projects_table(response.json()["list"])
-        display_message(response)
-
-@projects_app.command()
-def open(
-    project_id: str = typer.Argument(None)
-):
-    token = get_session()
-
-    project_id = redisplay_prompt(project_id, "Enter project ID")
-
-
-    if token is not None:
-        response = send_request("get", "/open-project", {
-            "id": project_id,
-            "token": token
-        })
-
         display_message(response)

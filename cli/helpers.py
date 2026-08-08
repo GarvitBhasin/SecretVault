@@ -5,7 +5,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 console = Console()
-table = Table(title="Projects", header_style="bold", expand=True, show_lines=True, box=box.ROUNDED)
+projects_table = Table(title="Projects", header_style="bold", expand=True, box=box.ROUNDED)
+secrets_table = Table(title="Secrets", header_style="bold", expand=True, box=box.ROUNDED)
 backend_url = os.getenv("APP_URL")
 
 def get_session():
@@ -43,20 +44,20 @@ def display_message(response):
         console.print(f"[red]Error[/red]: {response.json()["detail"]}")
 
 def display_projects_table(projects):
-    table.add_column("ID")
-    table.add_column("Name")
-    table.add_column("Creator")
-    table.add_column("Secrets")
+    projects_table.add_column("ID")
+    projects_table.add_column("Name")
+    projects_table.add_column("Creator")
+    projects_table.add_column("Secrets")
 
     for project in projects:
-        table.add_row(
+        projects_table.add_row(
             project["id"],
             project["name"],
             project["creator"],
             project["secrets"]
         )
 
-    console.print(table)
+    console.print(projects_table)
 
 def redisplay_prompt(variable, prompt):
     if variable is None:
@@ -64,21 +65,19 @@ def redisplay_prompt(variable, prompt):
     return variable
 
 def display_secrets_table(secrets):
-    table.add_column("ID")
-    table.add_column("Name")
-    table.add_column("Value")
-    table.add_column("Creator")
-    table.add_column("Created Date")
-    table.add_column("Last Updated")
+    secrets_table.add_column("ID")
+    secrets_table.add_column("Name")
+    secrets_table.add_column("Creator")
+    secrets_table.add_column("Created Date")
+    secrets_table.add_column("Last Updated")
 
     for secret in secrets: 
-        table.add_row(
+        secrets_table.add_row(
             secret["id"],
             secret["name"],
-            secret["value"],
             secret["creator"],
             secret["created_at"],
             secret["updated_at"],
         )
 
-    console.print(table)
+    console.print(secrets_table)

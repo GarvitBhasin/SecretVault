@@ -5,6 +5,7 @@ from pwdlib import PasswordHash
 from dotenv import load_dotenv
 from backend.security import *
 from backend.models import *
+from datetime import datetime, timezone
 import re, os
 
 
@@ -70,7 +71,6 @@ def register(data: RegisterRequest):
 
         # Return token and message
         id = session.execute(select(Users.id).where(Users.email == data.email)).scalar_one()
-        print(id)
         token = encode_token({ "sub": str(id) })
                 
         return {
@@ -279,8 +279,39 @@ def edit_project(data: EditRequest):
     finally:
         session.close()
 
-@app.get("/open-project")
-def open_project(data: IDRequest):
+# SECRETS
+
+@app.post("/create-secret")
+def create_secret(data: CreateSecretRequest):
+    try:
+        session = SessionLocal()
+
+        creator_id = verify_user(data.token, session)
+
+        secret = Secrets(
+            name=data.name,
+            value=data.value,
+            project_id=int(data.project_id),
+            creator_id=creator_id,
+            created_at=datetime.now(timezone.utc).replace(microsecond=0),
+            updated_at=datetime.now(timezone.utc)
+        )
+
+        session.add(secret)
+        session.commit()
+
+        return {
+            "message": "Created secret."
+        }      
+
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+@app.get("/list-secrets")
+def list_secrets(data: IDRequest):
     try:
         session = SessionLocal()
 
@@ -305,7 +336,6 @@ def open_project(data: IDRequest):
             secrets_list.append({
                 "id": str(secret.id),
                 "name": secret.name,
-                "value": secret.value,
                 "creator": username,
                 "created_at": str(secret.created_at),
                 "updated_at": str(secret.updated_at),
@@ -318,8 +348,3 @@ def open_project(data: IDRequest):
 
     finally:
         session.close()
-
-# SECRETS
-
-@app.get("/open-project")
-def open_project(data: IDRequest):

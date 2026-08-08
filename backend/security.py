@@ -34,7 +34,7 @@ def raise_error(code, detail):
 
 def verify_user(token, session):
 
-    # decode token for user_id and expiry; raise error if invalid/expired
+    # decode token for user_id and expiry; raise error if invalid/expired.
     try:
         payload = jwt.decode(
             token, secret_key, algorithms=["HS256"]

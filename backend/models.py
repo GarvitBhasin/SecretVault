@@ -71,7 +71,7 @@ class EditRequest(BaseModel):
     name: str
 
 class CreateSecretRequest(BaseModel):
-    id: str
+    project_id: str
     name: str
     value: str
     token: str
