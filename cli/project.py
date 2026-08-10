@@ -1,9 +1,9 @@
 import typer
 from helpers import *
 
-projects_app = typer.Typer()
+project_app = typer.Typer()
 
-@projects_app.command()
+@project_app.command()
 def create(
     name: str = typer.Argument(None)
 ):
@@ -19,7 +19,7 @@ def create(
 
         display_message(response)
 
-@projects_app.command()
+@project_app.command()
 def delete(
     project_id: str = typer.Argument(None)
 ):
@@ -36,7 +36,7 @@ def delete(
 
         display_message(response)
 
-@projects_app.command()
+@project_app.command()
 def edit(
     project_id: str = typer.Option(..., prompt="Enter project ID"),
     name: str = typer.Option(..., prompt="Enter new project name")
@@ -52,15 +52,15 @@ def edit(
 
         display_message(response)
 
-@projects_app.command()
+@project_app.command()
 def list():
     token = get_session()
     
     if token is not None:
-        response = send_request("get", "/list-projects", {
+        response = send_request("get", "/list-project", {
             "token": token
         })
 
         if response.ok:
-            display_projects_table(response.json()["list"])
+            display_projects_table(response.json()["projects"])
         display_message(response)

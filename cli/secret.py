@@ -1,4 +1,5 @@
 import typer
+from typing import Optional
 from helpers import *
 
 secrets_app = typer.Typer()
@@ -22,12 +23,52 @@ def create(
         display_message(response)
 
 @secrets_app.command()
-def delete():
-    pass
+def delete(
+    secret_id: str = typer.Argument(None)
+):
+    token = get_session()
+    
+    secret_id = redisplay_prompt(secret_id, "Enter project ID")
+
+    if token is not None:
+        response = send_request("delete", "/delete-secret", {
+            "id": secret_id,
+            "token": token
+        })
+
+        display_message(response)
 
 @secrets_app.command()
-def edit():
-    pass
+def edit(
+    secret_id: str = typer.Option(..., prompt="Enter secret ID"),
+):
+    name = typer.prompt(
+        "Enter new secret name",
+        default="",
+        show_default=False
+    )
+
+    value = typer.prompt(
+        "Enter new secret value",
+        default="",
+        show_default=False
+    )
+
+    if not (name and value):
+        console.print("[red]Error[/red]: Nothing to edit.")
+        return
+    
+    token = get_session()
+    
+    if token is not None:
+        response = send_request("patch", "/edit-secret", {
+            "id": secret_id,
+            "token": token,
+            "name": name if name else None,
+            "value": value if value else None
+        })
+
+        display_message(response)
 
 @secrets_app.command()
 def list(
@@ -38,7 +79,7 @@ def list(
     project_id = redisplay_prompt(project_id, "Enter project ID")
 
     if token is not None:
-        response = send_request("get", "/list-secrets", {
+        response = send_request("get", "/list-secret", {
             "id": project_id,
             "token": token
         })

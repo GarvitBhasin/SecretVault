@@ -8,7 +8,6 @@ from backend.models import *
 from datetime import datetime, timezone
 import re, os
 
-
 load_dotenv()
 app = FastAPI()
 SessionLocal = sessionmaker(bind=engine)
@@ -187,7 +186,7 @@ def create_project(data: CreateRequest):
     finally:
         session.close()
 
-@app.get("/list-projects")
+@app.get("/list-project")
 def list_projects(data: TokenRequest):
     try:
         session = SessionLocal()
@@ -222,7 +221,7 @@ def list_projects(data: TokenRequest):
             })
 
         return {
-            "list": project_list,
+            "projects": project_list,
             "message": "Loaded projects."
         }
 
@@ -254,7 +253,6 @@ def delete_project(data: IDRequest):
 
 @app.patch("/edit-project")
 def edit_project(data: EditRequest):
-
     try:
         session = SessionLocal()
 
@@ -294,7 +292,7 @@ def create_secret(data: CreateSecretRequest):
             project_id=int(data.project_id),
             creator_id=creator_id,
             created_at=datetime.now(timezone.utc).replace(microsecond=0),
-            updated_at=datetime.now(timezone.utc)
+            updated_at=datetime.now(timezone.utc).replace(microsecond=0)
         )
 
         session.add(secret)
@@ -303,6 +301,67 @@ def create_secret(data: CreateSecretRequest):
         return {
             "message": "Created secret."
         }      
+
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+@app.delete("/delete-secret")
+def delete_secrets(data: IDRequest):
+    try:
+        session = SessionLocal()
+
+        id = verify_user(data.token, session)
+
+        secret = session.execute(delete(Secrets).where(Secrets.id == int(data.id)))
+        session.commit()
+        
+        if Secrets.rowcount == 0:
+            raise_error(404, "Secret not found.")
+
+        return {
+            "message": "Secret deleted."
+        }
+
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+@app.patch("/edit-secret")
+def edit_secrets(data: EditSecretRequest):
+    try:
+        session = SessionLocal()
+
+        user_id = verify_user(data.token, session)
+
+        if data.value is None:
+            result = session.execute(update(Secrets)
+                .where(Secrets.id == int(data.id))
+                .values(name = data.name, updated_at = datetime.now(timezone.utc))
+            )
+        elif data.name is None:
+            result = session.execute(update(Secrets)
+                .where(Secrets.id == int(data.id))
+                .values(value = data.value, updated_at = datetime.now(timezone.utc))
+            )
+        else:
+            result = session.execute(update(Secrets)
+                .where(Secrets.id == int(data.id))
+                .values(value = data.value, name = data.name, updated_at = datetime.now(timezone.utc))
+            )
+
+        session.commit()
+
+        if result.rowcount == 0:
+            raise_error(404, "Secret not found.")
+
+        return {
+            "message": "Secret edited."
+        }
 
     except Exception:
         session.rollback()
