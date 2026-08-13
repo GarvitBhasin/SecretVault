@@ -1,45 +1,50 @@
 from jose import jwt, JWTError
-from datetime import datetime, timezone, timedelta
+from datetime import timedelta
 from dotenv import load_dotenv
 from fastapi import HTTPException
 from sqlalchemy import select
 from backend.models import Users
-import os
+from backend.helpers import raise_error, now
+import os, re
 load_dotenv()
 
 secret_key = os.getenv("SECRET_KEY")
 
+def email_valid(email):
+    return bool(re.match(r"^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$", email))
+
+def password_strong(password):
+    has_char = any(char.isalpha() for char in password)
+    has_digit = any(char.isdigit() for char in password)
+    has_symbol = any(not char.isalnum() for char in password)
+    is_long = len(password) > 8
+
+    return True if has_char and has_digit and has_symbol and is_long else False
+
 def encode_token(data: dict):
 
     # Generate expiry and add to data
-    expiry = datetime.now(timezone.utc) + timedelta(minutes=45)
+    expiry = now() + timedelta(minutes=45)
 
-    to_encode = data.copy()
-    to_encode.update({
+    data.update({
         "exp": expiry.timestamp()
     })
 
     # encode and return token
     token = jwt.encode(
-        to_encode, secret_key, algorithm="HS256"
+        data, secret_key, algorithm="HS256"
     )
 
     return token
 
-def raise_error(code, detail):
-    raise HTTPException(
-        status_code=code,
-        detail=detail
-    )
-
 def verify_user(token, session):
 
-    # decode token for user_id and expiry; raise error if invalid/expired.
+    # Decode token for user_id and expiry; raise error if invalid/expired.
     try:
         payload = jwt.decode(
             token, secret_key, algorithms=["HS256"]
         )
-    except JWTError:
+    except JWTError as error:
         raise_error(401, "Invalid or expired token.")
 
     # Check if user exists in db and return user if found

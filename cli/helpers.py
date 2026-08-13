@@ -9,6 +9,8 @@ projects_table = Table(title="Projects", header_style="bold", expand=True, box=b
 secrets_table = Table(title="Secrets", header_style="bold", expand=True, box=box.ROUNDED)
 backend_url = os.getenv("APP_URL")
 
+# SESSION HELPERS
+
 def get_session():
     if not os.path.exists(".session"):
         console.print("[red]Error[/red]: No user is logged in.")
@@ -23,6 +25,7 @@ def remove_session():
     if os.path.exists(".session"):
         os.remove(".session")
         console.print("[green]Success[/green]: Logged out.")
+
     else:
         console.print("[red]Error[/red]: No user is logged in.")
 
@@ -30,12 +33,16 @@ def add_session(response):
     with open(".session", "w") as file:
         file.write(response.json()["token"])
 
+# API HELPERS
+
 def send_request(method, endpoint, payload):
     return requests.request(
         method, 
         f"{backend_url}{endpoint}",
         json=payload
     )
+
+# FRONTEND HELPERS
 
 def display_message(response):
     if response.ok:
@@ -48,21 +55,20 @@ def display_projects_table(projects):
     projects_table.add_column("Name")
     projects_table.add_column("Creator")
     projects_table.add_column("Secrets")
+    projects_table.add_column("Created At")
+    projects_table.add_column("Last Updated")
 
     for project in projects:
         projects_table.add_row(
             project["id"],
             project["name"],
             project["creator"],
-            project["secrets"]
+            project["secrets"],
+            project["created_at"],
+            project["updated_at"],
         )
 
     console.print(projects_table)
-
-def redisplay_prompt(variable, prompt):
-    if variable is None:
-        variable = typer.prompt(prompt)
-    return variable
 
 def display_secrets_table(secrets):
     secrets_table.add_column("ID")
@@ -81,3 +87,6 @@ def display_secrets_table(secrets):
         )
 
     console.print(secrets_table)
+
+def confirm_action():
+    return typer.confirm("Are you sure you want to execute this action?")

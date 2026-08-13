@@ -5,10 +5,10 @@ auth_app = typer.Typer()
 
 @auth_app.command()
 def register(
-    username: str = typer.Option(..., prompt=True),
-    email: str = typer.Option(..., prompt=True),
-    password: str = typer.Option(..., prompt=True, hide_input=True),
-    confirm: str = typer.Option(..., prompt=True, hide_input=True),
+    username: str = typer.Option(..., prompt="Enter a username"),
+    email: str = typer.Option(..., prompt="Enter an email"),
+    password: str = typer.Option(..., prompt="Enter a password", hide_input=True),
+    confirm: str = typer.Option(..., prompt="Confirm password", hide_input=True),
 ):
     response = send_request("post", "/register", {
         "username": username,
@@ -24,12 +24,12 @@ def register(
 
 @auth_app.command()
 def login(
-    email: str = typer.Option(..., prompt=True),
-    password: str = typer.Option(..., prompt=True, hide_input=True)
+    email: str = typer.Option(..., prompt="Enter email"),
+    password: str = typer.Option(..., prompt="Enter password", hide_input=True)
 ):
     response = send_request("post", "/login", {
-            "email": email,
-            "password": password,
+        "email": email,
+        "password": password,
     })
 
     if response.ok:
@@ -47,18 +47,27 @@ def me():
     token = get_session()
 
     if token is not None:
-        response = send_request("get", "/me", {"token": token})
+        response = send_request("get", "/me", {
+            "token": token
+        })
 
         display_message(response)
 
 @auth_app.command()
 def delete():
 
-    token = get_session()
+    confirm = confirm_action()
 
-    if token is not None:
-        response = send_request("delete", "/delete", {"token": token}) 
-        if response.ok:
-            os.remove(".session")
+    if confirm:
 
-        display_message(response)
+        token = get_session()
+
+        if token is not None:
+            response = send_request("delete", "/delete", {
+                "token": token
+            })
+             
+            if response.ok:
+                os.remove(".session")
+
+            display_message(response)

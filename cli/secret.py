@@ -6,17 +6,20 @@ secrets_app = typer.Typer()
 
 @secrets_app.command()
 def create(
-    project_id: str = typer.Option(..., prompt="Enter project ID"),
+    id: int = typer.Option(..., prompt="Enter project ID"),
     name: str = typer.Option(..., prompt="Enter secret name"),
     value: str = typer.Option(..., prompt="Enter secret"),
 ):
+    description: str = typer.prompt("Enter secret description (optional)", default="", show_default=False)
+    
     token = get_session()
 
     if token is not None:
         response = send_request("post", "/create-secret", {
-            "project_id": project_id,
+            "id": id,
             "name": name,
             "value": value,
+            "description": description if description else None,
             "token": token
         })
 
@@ -24,70 +27,82 @@ def create(
 
 @secrets_app.command()
 def delete(
-    secret_id: str = typer.Argument(None)
+    id: int = typer.Option(..., prompt="Enter secret ID")
 ):
-    token = get_session()
+    confirm = confirm_action()
+
+    if confirm:
     
-    secret_id = redisplay_prompt(secret_id, "Enter project ID")
+        token = get_session()
 
-    if token is not None:
-        response = send_request("delete", "/delete-secret", {
-            "id": secret_id,
-            "token": token
-        })
+        if token is not None:
+            response = send_request("delete", "/delete-secret", {
+                "id": id,
+                "token": token
+            })
 
-        display_message(response)
+            display_message(response)
 
 @secrets_app.command()
 def edit(
-    secret_id: str = typer.Option(..., prompt="Enter secret ID"),
+    id: int = typer.Option(..., prompt="Enter secret ID"),
 ):
-    name = typer.prompt(
-        "Enter new secret name",
-        default="",
-        show_default=False
-    )
+    name: str = typer.prompt("Enter new secret name", default="", show_default=False)
+    value: str = typer.prompt("Enter new secret value", default="", show_default=False)
+    description: str = typer.prompt("Enter new description", default="", show_default=False)
 
-    value = typer.prompt(
-        "Enter new secret value",
-        default="",
-        show_default=False
-    )
-
-    if not (name and value):
-        console.print("[red]Error[/red]: Nothing to edit.")
+    if name == "" or value == "":
+        console.print("[red]Error[/red]: Name/value field(s) cannot be empty.")
         return
-    
-    token = get_session()
-    
-    if token is not None:
-        response = send_request("patch", "/edit-secret", {
-            "id": secret_id,
-            "token": token,
-            "name": name if name else None,
-            "value": value if value else None
-        })
 
-        display_message(response)
+    confirm = confirm_action()
+
+    if confirm:
+    
+        token = get_session()
+        
+        if token is not None:
+            response = send_request("patch", "/edit-secret", {
+                "id": id,
+                "token": token,
+                "description": description,
+                "name": name,
+                "value": value
+            })
+
+            display_message(response)
 
 @secrets_app.command()
 def list(
-    project_id: str = typer.Argument(None)
+    id: int = typer.Option(..., prompt="Enter project ID")
 ):
     token = get_session()
-    
-    project_id = redisplay_prompt(project_id, "Enter project ID")
 
     if token is not None:
         response = send_request("get", "/list-secret", {
-            "id": project_id,
+            "id": id,
             "token": token
         })
 
         if response.ok:
             display_secrets_table(response.json()["secrets"])
+
         display_message(response)
 
 @secrets_app.command()
-def get():
-    pass
+def get(
+    id: int = typer.Option(..., prompt="Enter secret ID")
+):
+    confirm = confirm_action()
+
+    if confirm:
+
+        token = get_session()
+
+        if token is not None:
+            response = send_request("get", "/get-secret", {
+                "id": id,
+                "token": token
+            })
+        print(response.json()["secret"])
+        display_message(response)

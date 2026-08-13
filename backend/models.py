@@ -28,6 +28,8 @@ class Projects(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(25), nullable=False)
     creator_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 
 class Secrets(Base):
     __tablename__ = "secrets"
@@ -35,7 +37,8 @@ class Secrets(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(25), nullable=False)
     value: Mapped[str] = mapped_column(Text, nullable=False)
-    creator_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    description: Mapped[str] = mapped_column(Text)
+    creator_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=False)
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
@@ -57,27 +60,22 @@ class LoginRequest(BaseModel):
 class TokenRequest(BaseModel):
     token: str
 
-class CreateRequest(BaseModel):
+class CreateProjectRequest(BaseModel):
     token: str
     name: str
 
 class IDRequest(BaseModel):
     token: str
-    id: str
+    id: int
 
-class EditRequest(BaseModel):
+class EditProjectRequest(BaseModel):
     token: str
-    id: str
+    id: int
     name: str
 
-class CreateSecretRequest(BaseModel):
-    project_id: str
+class SecretRequest(BaseModel):
+    id: int
     name: str
     value: str
-    token: str
-
-class EditSecretRequest(BaseModel):
-    id: str
-    name: str
-    value: str
+    description: str
     token: str
