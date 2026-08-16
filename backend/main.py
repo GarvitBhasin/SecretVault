@@ -119,13 +119,13 @@ def me(data: TokenRequest):
         user_id = verify_user(data.token, session)
 
         # Find user in db raise error if not found
-        username, email = session.execute(
-            select(Users.username, Users.email)
+        username, email, role = session.execute(
+            select(Users.username, Users.email, Users.role)
             .where(Users.id == user_id)
         ).first()
 
         return {
-            "message": f"Loaded user details.\nUsername: {username}\nEmail: {email}",
+            "message": f"Loaded user details.\nUsername: {username}\nEmail: {email}\nRole: {role}",
         }
 
     finally:
@@ -159,6 +159,10 @@ def delete_user(data: TokenRequest):
     finally:
         session.close()
 
+@app.get("/list")
+def list_users(data: TokenRequest):
+    pass
+
 # PROJECTS
 
 @app.post("/create-project", status_code=201)
@@ -167,6 +171,7 @@ def create_project(data: CreateProjectRequest):
         session = SessionLocal()
 
         user_id = verify_user(data.token, session)
+        validate_user(session, user_id, Role.ADMIN)
 
         # Create project object and add to db
         current_time = now()
@@ -201,6 +206,7 @@ def delete_project(data: IDRequest):
         session = SessionLocal()
 
         user_id = verify_user(data.token, session)
+        validate_user(session, user_id, Role.OWNER)
 
         project = session.execute(
             delete(Projects)
@@ -231,6 +237,7 @@ def edit_project(data: EditProjectRequest):
         session = SessionLocal()
 
         user_id = verify_user(data.token, session)
+        validate_user(session, user_id, Role.ADMIN)
 
         result = session.execute(
             update(Projects)
@@ -314,7 +321,8 @@ def create_secret(data: SecretRequest):
     try:
         session = SessionLocal()
 
-        creator_id = verify_user(data.token, session)
+        user_id = verify_user(data.token, session)
+        validate_user(session, user_id, Role.ADMIN)
 
         project = session.execute(
             select(Projects)
@@ -331,7 +339,7 @@ def create_secret(data: SecretRequest):
             value = encrypt(data.value),
             description = data.description,
             project_id = data.id,
-            creator_id = creator_id,
+            creator_id = user_id,
             created_at = current_time,
             updated_at = current_time
         )
@@ -342,7 +350,7 @@ def create_secret(data: SecretRequest):
         # Update project last updated column
         update_project_timestamp(session, data.id)
 
-        add_log(session, creator_id, Action.CREATE, Asset.SECRET, secret.id)
+        add_log(session, user_id, Action.CREATE, Asset.SECRET, secret.id)
 
         session.commit()
 
@@ -363,6 +371,7 @@ def delete_secret(data: IDRequest):
         session = SessionLocal()
 
         user_id = verify_user(data.token, session)
+        validate_user(session, user_id, Role.OWNER)
 
         project_id = find_project(session, data.id)
         
@@ -399,6 +408,7 @@ def edit_secret(data: SecretRequest):
         session = SessionLocal()
 
         user_id = verify_user(data.token, session)
+        validate_user(session, user_id, Role.ADMIN)
 
         # Execute edit query
         result = session.execute(

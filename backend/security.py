@@ -1,9 +1,8 @@
 from jose import jwt, JWTError
 from datetime import timedelta
 from dotenv import load_dotenv
-from fastapi import HTTPException
 from sqlalchemy import select
-from backend.database import Users
+from backend.database import Users, Role, Action
 from backend.helpers import raise_error, now
 from cryptography.fernet import Fernet
 from pwdlib import PasswordHash
@@ -71,6 +70,18 @@ def verify_user(token, session):
         raise_error(404, "User not found.")
 
     return user_id
+
+def validate_user(session, user_id, minimum_access_role):
+
+    # Extract user's role
+    role = session.execute(
+        select(Users.role)
+        .where(Users.id == user_id)
+    ).scalar_one_or_none()
+
+    # Check if role's access level is lower than allowed
+    if role < minimum_access_role:
+        raise_error(403, "Access not granted. Please request admin/owner for access")
 
 def encrypt(plaintext):
     return fernet.encrypt(plaintext.encode()).decode()

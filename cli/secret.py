@@ -1,5 +1,4 @@
 import typer
-from typing import Optional
 from helpers import *
 
 secrets_app = typer.Typer()

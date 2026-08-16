@@ -1,4 +1,4 @@
-import typer, os
+import typer
 from helpers import *
 
 auth_app = typer.Typer()
@@ -71,3 +71,15 @@ def delete():
                 os.remove(".session")
 
             display_message(response)
+
+@auth_app.command()
+def list():
+
+    token = get_session()
+    
+    if token is not None:
+        response = send_request("get", "/me", {
+            "token": token
+        })
+
+        display_message(response)

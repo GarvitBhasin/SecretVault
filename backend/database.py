@@ -22,6 +22,12 @@ class Users(Base):
     username: Mapped[str] = mapped_column(String(25), unique=True, nullable=False)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    role: Mapped[str] = mapped_column(String(10), nullable=False)
+
+class Role(Enum):
+    VIEWER = 1
+    ADMIN = 2
+    OWNER = 3
 
 class Projects(Base):
     __tablename__ = "projects"
@@ -90,7 +96,7 @@ class CreateProjectRequest(BaseModel):
 class IDRequest(BaseModel):
     token: str
     id: int
-    
+
 class EditProjectRequest(BaseModel):
     token: str
     id: int
