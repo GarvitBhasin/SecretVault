@@ -7,6 +7,7 @@ load_dotenv()
 console = Console()
 projects_table = Table(title="Projects", header_style="bold", expand=True, box=box.ROUNDED)
 secrets_table = Table(title="Secrets", header_style="bold", expand=True, box=box.ROUNDED)
+logs_table = Table(title="Logs", header_style="bold", expand=True, box=box.ROUNDED)
 backend_url = os.getenv("APP_URL")
 
 # SESSION HELPERS
@@ -87,6 +88,26 @@ def display_secrets_table(secrets):
         )
 
     console.print(secrets_table)
+
+def display_logs_table(logs):
+    logs_table.add_column("ID")
+    logs_table.add_column("Actor")
+    logs_table.add_column("Action")
+    logs_table.add_column("Asset")
+    logs_table.add_column("Asset ID")
+    logs_table.add_column("Action Date")
+
+    for log in logs: 
+        logs_table.add_row(
+            log["id"],
+            log["actor"],
+            log["action"],
+            log["asset_type"],
+            log["asset_id"],
+            log["action_date"],
+        )
+
+    console.print(logs_table)
 
 def confirm_action():
     return typer.confirm("Are you sure you want to execute this action?")

@@ -3,13 +3,14 @@ from sqlalchemy import String, Text, DateTime, ForeignKey, create_engine
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from datetime import datetime
+from enum import Enum
 import os
 
 load_dotenv()
 database_url = os.getenv("DB_URL")
 engine = create_engine(database_url)
 
-# DB MODELS
+# DB TABLES
 
 class Base(DeclarativeBase):
     pass
@@ -27,7 +28,7 @@ class Projects(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(25), nullable=False)
-    creator_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    creator_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 
@@ -37,11 +38,33 @@ class Secrets(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(25), nullable=False)
     value: Mapped[str] = mapped_column(Text, nullable=False)
-    description: Mapped[str] = mapped_column(Text)
-    creator_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text)
+    creator_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+
+class Logs(Base):
+    __tablename__ = "logs"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    actor_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    action: Mapped[str] = mapped_column(String(25), nullable=False)
+    asset_type: Mapped[str] = mapped_column(String(25), nullable=False)
+    asset_id: Mapped[int] = mapped_column(nullable=False)
+    action_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    expiry: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+
+class Action(str, Enum):
+    CREATE = "CREATE"
+    READ = "READ"
+    UPDATE = "UPDATE"
+    DELETE = "DELETE"
+
+class Asset(str, Enum):
+    ACCOUNT = "ACCOUNT"
+    PROJECT = "PROJECT"
+    SECRET = "SECRET"
 
 Base.metadata.create_all(engine)
 
@@ -67,7 +90,7 @@ class CreateProjectRequest(BaseModel):
 class IDRequest(BaseModel):
     token: str
     id: int
-
+    
 class EditProjectRequest(BaseModel):
     token: str
     id: int
@@ -77,5 +100,5 @@ class SecretRequest(BaseModel):
     id: int
     name: str
     value: str
-    description: str
+    description: str | None = None
     token: str

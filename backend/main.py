@@ -2,17 +2,13 @@ from fastapi import FastAPI
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import select, delete, update, func
 from pwdlib import PasswordHash
-from dotenv import load_dotenv
 from backend.security import *
-from backend.models import *
+from backend.database import *
 from backend.helpers import *
 from sqlalchemy.exc import IntegrityError
-import os
 
-load_dotenv()
 app = FastAPI()
 SessionLocal = sessionmaker(bind=engine)
-password_hash = PasswordHash.recommended()
 
 # AUTH
 
@@ -31,11 +27,11 @@ def register(data: RegisterRequest):
     if not password_strong(data.password):
         raise_error(422, "Password must have at least one character, digit, symbol and must be more than 8 characters long.")
 
+    # Hash password
+    hashed_pass = hash_password(data.password)
+
     try:
         session = SessionLocal()
-
-        # Hash password
-        hashed_pass = password_hash.hash(data.password)
 
         # Create user object and add to db
         user = Users(
@@ -43,24 +39,24 @@ def register(data: RegisterRequest):
             email = data.email,
             password_hash = hashed_pass,
         )
+    
         session.add(user)
+        session.flush()
+
+        add_log(session, user.id, Action.CREATE, Asset.ACCOUNT, user.id)
+
         session.commit()
 
         # Return token and message
         token = encode_token({ "sub": str(user.id) })
-
-        print(token)
                 
         return {
             "token": token,
             "token_type": "bearer",
             "message": "Created account."
         }
-    
-    except Exception:
-        session.rollback()
-        raise
 
+    # Return error if email/username already exist
     except IntegrityError as error:
         session.rollback()
 
@@ -71,34 +67,36 @@ def register(data: RegisterRequest):
             raise_error(409, "Username taken.")
 
         raise
+        
+    except Exception:
+        session.rollback()
+        raise
 
     finally:
         session.close()
 
 @app.post("/login")
 def login(data: LoginRequest):
-
     try:
         session = SessionLocal()
 
         # Find user in db
         result = session.execute(
-            select(Users.password_hash, Users.id).where(Users.email == data.email)
+            select(Users.id, Users.password_hash)
+            .where(Users.email == data.email)
         ).first()
 
         if result is None:
             raise_error(401, "Incorrect email or password.")
 
-        stored_hash, id = result
+        user_id, stored_hash = result
 
-        # Check if password is correct
-        is_valid = password_hash.verify(data.password, stored_hash)
-
-        if not is_valid:
+        # Check if password matches
+        if not verify_password(data.password, stored_hash):
             raise_error(401, "Incorrect email or password.")
 
         # Return token and message
-        token = encode_token({"sub": str(id)})
+        token = encode_token({"sub": str(user_id)})
         
         return {
             "token": token,
@@ -109,6 +107,7 @@ def login(data: LoginRequest):
     except Exception:
         session.rollback()
         raise
+
     finally:
         session.close()
 
@@ -120,14 +119,10 @@ def me(data: TokenRequest):
         user_id = verify_user(data.token, session)
 
         # Find user in db raise error if not found
-        result = session.execute(
-            select(Users.username, Users.email).where(Users.id == user_id)
+        username, email = session.execute(
+            select(Users.username, Users.email)
+            .where(Users.id == user_id)
         ).first()
-
-        if result is None:
-            raise_error(404, "User not found.")
-
-        username, email = result
 
         return {
             "message": f"Loaded user details.\nUsername: {username}\nEmail: {email}",
@@ -136,22 +131,22 @@ def me(data: TokenRequest):
     finally:
         session.close()
 
-@app.post("/delete")
+@app.delete("/delete")
 def delete_user(data: TokenRequest):
     try:
         session = SessionLocal()
 
         user_id = verify_user(data.token, session)
 
-        # Delete user
+        # Delete user if found
         result = session.execute(
-            delete(Users).where(Users.id == user_id)
+            delete(Users)
+            .where(Users.id == user_id)
         )
-        session.commit()
 
-        # Check if user found and return message
-        if result.rowcount == 0:
-            raise_error(404, "User not found.")
+        add_log(session, user_id, Action.DELETE, Asset.ACCOUNT, user_id)
+
+        session.commit()
 
         return {
             "message": "Deleted account."
@@ -160,6 +155,7 @@ def delete_user(data: TokenRequest):
     except Exception:
         session.rollback()
         raise
+
     finally:
         session.close()
 
@@ -173,14 +169,19 @@ def create_project(data: CreateProjectRequest):
         user_id = verify_user(data.token, session)
 
         # Create project object and add to db
+        current_time = now()
         project = Projects(
             name = data.name,
             creator_id = user_id,
-            created_at = now(),
-            updated_at = now()
+            created_at = current_time,
+            updated_at = current_time
         )
 
         session.add(project)
+        session.flush()
+
+        add_log(session, user_id, Action.CREATE, Asset.PROJECT, project.id)
+
         session.commit()
 
         return {
@@ -190,6 +191,7 @@ def create_project(data: CreateProjectRequest):
     except Exception:
         session.rollback()
         raise
+
     finally:
         session.close()
 
@@ -201,14 +203,17 @@ def delete_project(data: IDRequest):
         user_id = verify_user(data.token, session)
 
         project = session.execute(
-            delete(Projects).where(Projects.id == data.id
-        ))
+            delete(Projects)
+            .where(Projects.id == data.id)
+        )
 
-        session.commit()
-        
         if project.rowcount == 0:
             raise_error(404, "Project not found.")
 
+        add_log(session, user_id, Action.DELETE, Asset.PROJECT, data.id)
+
+        session.commit()
+        
         return {
             "message": "Deleted project."
         }
@@ -216,6 +221,7 @@ def delete_project(data: IDRequest):
     except Exception:
         session.rollback()
         raise
+
     finally:
         session.close()
 
@@ -235,13 +241,12 @@ def edit_project(data: EditProjectRequest):
             )
         )
 
-        # Update project last updated column
-        update_project_timestamp(session, data)
-
-        session.commit()
-
         if result.rowcount == 0:
             raise_error(404, "Project not found.")
+
+        add_log(session, user_id, Action.UPDATE, Asset.PROJECT, data.id)
+
+        session.commit()
 
         return {
             "message": "Edited project."
@@ -250,6 +255,7 @@ def edit_project(data: EditProjectRequest):
     except Exception:
         session.rollback()
         raise
+
     finally:
         session.close()
 
@@ -267,18 +273,18 @@ def list_project(data: TokenRequest):
                 .order_by(Projects.id.asc())
         ).all()
 
+        if not projects:
+            raise_error(404, "No projects found.")
+
         # Calculate sum of secrets for each project
         secrets_sum = session.execute(
-            select(Projects.id, func.count(Secrets.project_id))
+            select(func.count(Secrets.project_id))
                 .select_from(Projects)
                 .outerjoin(Secrets, Projects.id == Secrets.project_id)
                 .group_by(Projects.id)
                 .order_by(Projects.id.asc())
         ).all()
         
-        if len(projects) == 0:
-            raise_error(404, "No projects found.")
-
         project_list = []
 
         # Create array of project dicts (used to display table on cli)
@@ -288,7 +294,7 @@ def list_project(data: TokenRequest):
                 "id": str(project.id),
                 "name": project.name,
                 "creator": project.username,
-                "secrets": str(secrets_sum[index][1]),
+                "secrets": str(secrets_sum[index][0]),
                 "created_at": str(project.created_at.replace(microsecond=0)),
                 "updated_at": str(project.updated_at.replace(microsecond=0))
             })
@@ -303,28 +309,40 @@ def list_project(data: TokenRequest):
 
 # SECRETS
 
-@app.post("/create-secret")
+@app.post("/create-secret", status_code=201)
 def create_secret(data: SecretRequest):
     try:
         session = SessionLocal()
 
         creator_id = verify_user(data.token, session)
 
+        project = session.execute(
+            select(Projects)
+            .where(Projects.id == data.id)
+        ).scalar_one_or_none()
+
+        if project is None:
+            raise_error(404, "Project not found.")
+
         # Create secret object and add to db
+        current_time = now()
         secret = Secrets(
             name = data.name,
-            value = data.value,
+            value = encrypt(data.value),
             description = data.description,
             project_id = data.id,
             creator_id = creator_id,
-            created_at = now(),
-            updated_at = now()
+            created_at = current_time,
+            updated_at = current_time
         )
 
         session.add(secret)
+        session.flush()
 
         # Update project last updated column
-        update_project_timestamp(session, data)
+        update_project_timestamp(session, data.id)
+
+        add_log(session, creator_id, Action.CREATE, Asset.SECRET, secret.id)
 
         session.commit()
 
@@ -335,30 +353,34 @@ def create_secret(data: SecretRequest):
     except Exception:
         session.rollback()
         raise
+
     finally:
         session.close()
 
 @app.delete("/delete-secret")
 def delete_secret(data: IDRequest):
-
     try:
         session = SessionLocal()
 
         user_id = verify_user(data.token, session)
 
-        # Delete user
+        project_id = find_project(session, data.id)
+        
+        # Delete secret
         secret = session.execute(
             delete(Secrets)
             .where(Secrets.id == data.id)
         )
 
-        # Update project last updated column
-        update_project_timestamp(session, data)
-
-        session.commit()
-        
         if secret.rowcount == 0:
             raise_error(404, "Secret not found.")
+
+        # Update project's updated at column
+        update_project_timestamp(session, project_id)
+
+        add_log(session, user_id, Action.DELETE, Asset.SECRET, data.id)
+
+        session.commit()
 
         return {
             "message": "Deleted secret."
@@ -367,6 +389,7 @@ def delete_secret(data: IDRequest):
     except Exception:
         session.rollback()
         raise
+
     finally:
         session.close()
 
@@ -383,19 +406,22 @@ def edit_secret(data: SecretRequest):
             .where(Secrets.id == data.id)
             .values(
                 name = data.name, 
-                value = data.value, 
-                description = data.description,
+                value = encrypt(data.value), 
+                description = data.description if data.description else None,
                 updated_at = now()
             )
         )
 
-        # Update project last updated column
-        update_project_timestamp(session, data)
-
-        session.commit()
-
         if result.rowcount == 0:
             raise_error(404, "Secret not found.")
+
+        # Find project id and update its updated at column
+        project_id = find_project(session, data.id)
+        update_project_timestamp(session, project_id)
+
+        add_log(session, user_id, Action.UPDATE, Asset.SECRET, data.id)
+
+        session.commit()
 
         return {
             "message": "Edited secret."
@@ -404,6 +430,7 @@ def edit_secret(data: SecretRequest):
     except Exception:
         session.rollback()
         raise
+
     finally:
         session.close()
 
@@ -429,7 +456,7 @@ def list_secret(data: IDRequest):
                 Secrets, Users.username
             )
             .where(Secrets.project_id == data.id)
-            .join(Users, Users.id == Secrets.creator_id)
+            .outerjoin(Users, Users.id == Secrets.creator_id)
             .order_by(Secrets.id.asc())
         ).all()
 
@@ -444,7 +471,7 @@ def list_secret(data: IDRequest):
             secrets_list.append({
                 "id": str(secret.id),
                 "name": secret.name,
-                "creator": username,
+                "creator": username if username else "Deleted user",
                 "created_at": str(secret.created_at),
                 "updated_at": str(secret.updated_at),
             })
@@ -465,23 +492,55 @@ def get_secret(data: IDRequest):
         user_id = verify_user(data.token, session)
 
         # Find secret
-        secret = session.execute(
-            select(Secrets)
+        result = session.execute(
+            select(Secrets, Users.username)
             .where(Secrets.id == data.id)
-        ).scalar_one_or_none()
+            .outerjoin(Users, Users.id == Secrets.creator_id)
+        ).first()
 
-        if secret is None:
+        if result is None:
             raise_error(404, "Secret not found.")
 
-        # Find creator    
-        creator = session.execute(
-            select(Users.username)
-            .where(Users.id == secret.creator_id)
-        ).scalar_one()
+        secret, username = result
+
+        add_log(session, user_id, Action.READ, Asset.SECRET, data.id)
 
         return {
-            "secret": f"Name: {secret.name}\nValue: {secret.value}\nDescription: {secret.description}\nCreator: {creator}\nCreated At: {secret.created_at}\nLast Updated: {secret.updated_at}",
+            "secret": f"Name: {secret.name}\nValue: {decrypt(secret.value)}\nDescription: {secret.description}\nCreator: {username if username else "Deleted user"}\nCreated At: {secret.created_at}\nLast Updated: {secret.updated_at}",
             "message": "Loaded secret."
+        }
+    
+    finally:
+        session.close()
+
+# LOGS
+@app.get("/logs")
+def logs(data: TokenRequest):
+    try:
+        session = SessionLocal()
+
+        user_id = verify_user(data.token, session)
+
+        logs_obj = session.execute(
+            select(Logs, Users.username)
+            .outerjoin(Users, Logs.actor_id == Users.id)
+        ).all()
+
+        logs = []
+
+        for log, username in logs_obj:
+            logs.append({
+                "id": str(log.id),
+                "actor": username if username else "Deleted User",
+                "action": log.action,
+                "asset_type": log.asset_type,
+                "asset_id": str(log.asset_id),
+                "action_date": str(log.action_date)
+            })
+
+        return {
+            "logs": logs,
+            "message": "Loaded logs."
         }
     
     finally:
