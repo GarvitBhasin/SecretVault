@@ -48,7 +48,7 @@ def add_user(data: RegisterRequest):
         session.add(user)
         session.flush()
 
-        add_log(session, user.id, Action.CREATE, Asset.ACCOUNT, user.id)
+        add_log(session, user_id, Action.CREATE, Asset.ACCOUNT, user.id)
 
         session.commit()
                 
@@ -179,8 +179,29 @@ def delete_user(data: TokenRequest):
         session = SessionLocal()
 
         user_id = verify_user(data.token, session)
+        
+        # Retrieve user's role and hash
+        role, stored_hash = session.execute(
+            select(Users.role, Users.password_hash)
+            .where(Users.id == user_id)
+        ).first()
 
-        # Delete user if found
+        # Check password
+        if not verify_password(data.password, stored_hash):
+            raise_error(401, "Incorrect email or password.")
+
+        # Count owners
+        owner_count = session.execute(
+            select(func.count(Users.id))
+            .select_from(Users)
+            .where(Users.role == Role.OWNER)
+        ).scalar_one()
+
+        # Forbid user from deleting if user is owner and only one owner exists
+        if role == Role.OWNER and owner_count == 1:
+            raise_error(403, "Organization must have atleast 1 owner.")
+
+        # Delete user and add log
         result = session.execute(
             delete(Users)
             .where(Users.id == user_id)

@@ -88,6 +88,7 @@ class RegisterRequest(BaseModel):
     email: str
     password: str
     confirm: str
+    role: int
 
 class LoginRequest(BaseModel):
     email: str
