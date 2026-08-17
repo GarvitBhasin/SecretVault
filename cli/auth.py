@@ -33,6 +33,22 @@ def add(
             display_message(response)
 
 @auth_app.command()
+def remove(
+    id: int = typer.Option(..., prompt="Enter ID of account to be deleted")
+):
+    confirm = confirm_action()
+
+    if confirm:
+    
+        token = get_session()
+
+        if token is not None:
+            response = send_request("delete", "/remove", {
+                "id": id,
+                "token": token
+            })
+
+@auth_app.command()
 def login(
     email: str = typer.Option(..., prompt="Enter email"),
     password: str = typer.Option(..., prompt="Enter password", hide_input=True)

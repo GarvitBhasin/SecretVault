@@ -75,6 +75,48 @@ def add_user(data: RegisterRequest):
     finally:
         session.close()
 
+@app.delete("/remove-user")
+def remove_user(data: IDRequest):
+    try:
+        session = SessionLocal()
+
+        user_id = verify_user(data.token, session)
+        validate_user(session, user_id, Role.OWNER)
+
+        # Retrieve user to be deleted
+        user = session.execute(
+            select(Users)
+            .where(Users.id == data.id)
+        ).scalar_one_or_none()
+
+        # Perform security checks
+        if user is None:
+            raise_error(404, "User not found.")
+
+        if user.id == user_id:
+            raise_error(403, "Cannot delete your own account.")
+
+        if user.role == Role.OWNER:
+            raise_error(403, "Not allowed to delete owner account.")
+
+        # delete user and add log
+        session.delete(user)
+
+        add_log(session, user_id, Action.DELETE, Asset.ACCOUNT, user.id)
+
+        session.commit()
+
+        return {
+            "message": "Account deleted successfully."
+        }
+
+    except Exception:
+        session.rollback()
+        raise
+    
+    finally:
+        session.close()
+
 @app.post("/login")
 def login(data: LoginRequest):
     try:
