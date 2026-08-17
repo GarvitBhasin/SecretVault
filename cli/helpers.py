@@ -109,5 +109,8 @@ def display_logs_table(logs):
 
     console.print(logs_table)
 
+def display_notifications_table(notifications):
+    pass
+
 def confirm_action():
     return typer.confirm("Are you sure you want to execute this action?")

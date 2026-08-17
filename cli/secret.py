@@ -103,5 +103,6 @@ def get(
                 "id": id,
                 "token": token
             })
+            
         print(response.json()["secret"])
         display_message(response)

@@ -12,18 +12,19 @@ SessionLocal = sessionmaker(bind=engine)
 
 # AUTH
 
-@app.post("/register", status_code=201)
-def register(data: RegisterRequest):
+@app.post("/add-user", status_code=201)
+def add_user(data: RegisterRequest):
 
-    # Check email validity
+    # Check email validity, password pairs, role validity, and password strenght
     if not email_valid(data.email):
         raise_error(400, "Invalid email.")
 
-    # Check password pairs
     if data.confirm != data.password:
         raise_error(400, "Passwords do not match.")
-        
-    # Check password strength
+
+    if data.role not in range(1, 4):
+        raise_error(400, "Invalid role.")    
+    
     if not password_strong(data.password):
         raise_error(422, "Password must have at least one character, digit, symbol and must be more than 8 characters long.")
 
@@ -33,11 +34,15 @@ def register(data: RegisterRequest):
     try:
         session = SessionLocal()
 
+        user_id = verify_user(data.token, session)
+        validate_user(session, user_id, Role.ADMIN)
+
         # Create user object and add to db
         user = Users(
             username = data.username,
             email = data.email,
             password_hash = hashed_pass,
+            role=data.role
         )
     
         session.add(user)
@@ -46,13 +51,8 @@ def register(data: RegisterRequest):
         add_log(session, user.id, Action.CREATE, Asset.ACCOUNT, user.id)
 
         session.commit()
-
-        # Return token and message
-        token = encode_token({ "sub": str(user.id) })
                 
         return {
-            "token": token,
-            "token_type": "bearer",
             "message": "Created account."
         }
 
@@ -131,7 +131,7 @@ def me(data: TokenRequest):
     finally:
         session.close()
 
-@app.delete("/delete")
+@app.delete("/delete-user")
 def delete_user(data: TokenRequest):
     try:
         session = SessionLocal()
@@ -159,9 +159,34 @@ def delete_user(data: TokenRequest):
     finally:
         session.close()
 
-@app.get("/list")
+@app.get("/list-user")
 def list_users(data: TokenRequest):
-    pass
+    try:
+        session = SessionLocal()
+
+        user_id = verify_user(data.token, session)
+
+        users = session.execute(
+            select(Users)
+        ).scalars().all()
+
+        users_arr = []
+
+        for user in users:
+            users_arr.append({
+                "id": user.id,
+                "email": user.email,
+                "username": user.username,
+                "role": user.role,
+            })
+
+        return {
+            "users": users_arr,
+            "message": "Loaded users."
+        }
+    
+    finally:
+        session.close()
 
 # PROJECTS
 
@@ -524,6 +549,7 @@ def get_secret(data: IDRequest):
         session.close()
 
 # LOGS
+
 @app.get("/logs")
 def logs(data: TokenRequest):
     try:

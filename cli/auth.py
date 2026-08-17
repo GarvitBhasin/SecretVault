@@ -4,23 +4,33 @@ from helpers import *
 auth_app = typer.Typer()
 
 @auth_app.command()
-def register(
+def add(
     username: str = typer.Option(..., prompt="Enter a username"),
     email: str = typer.Option(..., prompt="Enter an email"),
     password: str = typer.Option(..., prompt="Enter a password", hide_input=True),
     confirm: str = typer.Option(..., prompt="Confirm password", hide_input=True),
+    role: int = typer.Option(..., prompt="Enter user's role (viewer = 1, admin = 2, owner = 3)", )
 ):
-    response = send_request("post", "/register", {
-        "username": username,
-        "email": email,
-        "password": password,
-        "confirm": confirm,
-    })
 
-    if response.ok:
-        add_session(response)
+    confirm = confirm_action()
 
-    display_message(response)
+    if confirm:
+    
+        token = get_session()
+
+        if token is not None:
+            response = send_request("post", "/register", {
+                "username": username,
+                "email": email,
+                "password": password,
+                "confirm": confirm,
+                "role": role
+            })
+
+            if response.ok:
+                add_session(response)
+
+            display_message(response)
 
 @auth_app.command()
 def login(
@@ -63,7 +73,7 @@ def delete():
         token = get_session()
 
         if token is not None:
-            response = send_request("delete", "/delete", {
+            response = send_request("delete", "/delete-user", {
                 "token": token
             })
              
@@ -78,7 +88,7 @@ def list():
     token = get_session()
     
     if token is not None:
-        response = send_request("get", "/me", {
+        response = send_request("get", "/list-user", {
             "token": token
         })
 

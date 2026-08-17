@@ -72,6 +72,13 @@ class Asset(str, Enum):
     PROJECT = "PROJECT"
     SECRET = "SECRET"
 
+class Requests(Base):
+    __tablename__ = "requests"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+
 Base.metadata.create_all(engine)
 
 # REQUEST TEMPLATES
