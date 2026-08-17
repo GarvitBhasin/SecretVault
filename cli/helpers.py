@@ -8,6 +8,7 @@ console = Console()
 projects_table = Table(title="Projects", header_style="bold", expand=True, box=box.ROUNDED)
 secrets_table = Table(title="Secrets", header_style="bold", expand=True, box=box.ROUNDED)
 logs_table = Table(title="Logs", header_style="bold", expand=True, box=box.ROUNDED)
+users_table = Table(title="Users", header_style="bold", expand=True, box=box.ROUNDED)
 backend_url = os.getenv("APP_URL")
 
 # SESSION HELPERS
@@ -109,8 +110,21 @@ def display_logs_table(logs):
 
     console.print(logs_table)
 
-def display_notifications_table(notifications):
-    pass
+def display_users_table(users):
+    users_table.add_column("ID")
+    users_table.add_column("Email")
+    users_table.add_column("Username")
+    users_table.add_column("Role")
+
+    for user in users: 
+        users_table.add_row(
+            user["id"],
+            user["email"],
+            user["username"],
+            user["role"],
+        )
+
+    console.print(users_table)
 
 def confirm_action():
     return typer.confirm("Are you sure you want to execute this action?")

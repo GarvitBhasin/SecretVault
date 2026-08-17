@@ -108,4 +108,5 @@ def list():
             "token": token
         })
 
+        display_users_table(response.json()["users"])
         display_message(response)
