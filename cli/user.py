@@ -1,0 +1,83 @@
+import typer
+from cli.helpers import *
+
+user_app = typer.Typer()
+
+@user_app.command()
+def add(
+    username: str = typer.Option(..., prompt="Enter a username"),
+    email: str = typer.Option(..., prompt="Enter an email"),
+    password: str = typer.Option(..., prompt="Enter a password", hide_input=True),
+    confirm_pass: str = typer.Option(..., prompt="Confirm password", hide_input=True),
+    role: int = typer.Option(..., prompt="Enter user's role (viewer = 1, admin = 2, owner = 3)")
+):
+
+    confirm = confirm_action()
+
+    if confirm:
+    
+        token = get_session()
+
+        if token is not None:
+            response = send_request("post", "/add-user", {
+                "token": token,
+                "username": username,
+                "email": email,
+                "password": password,
+                "confirm": confirm_pass,
+                "role": role
+            })
+
+            display_message(response)
+
+@user_app.command()
+def remove(
+    id: int = typer.Option(..., prompt="Enter ID of account to be deleted")
+):
+    confirm = confirm_action()
+
+    if confirm:
+    
+        token = get_session()
+
+        if token is not None:
+            response = send_request("delete", "/remove-user", {
+                "id": id,
+                "token": token
+            })
+
+        display_message(response)
+
+@user_app.command()
+def edit(
+    id: int = typer.Option(..., prompt="Enter ID of account to be edited"),
+    role: int = typer.Option(..., prompt="Enter user's role (viewer = 1, admin = 2, owner = 3)")
+):
+    confirm = confirm_action()
+
+    if confirm:
+
+        token = get_session()
+
+        if token is not None:
+            response = send_request("patch", "/edit-user", {
+                "id": id,
+                "role": role,
+                "token": token
+            })
+
+        display_message(response)
+
+@user_app.command()
+def list():
+
+    token = get_session()
+    
+    if token is not None:
+        response = send_request("get", "/list-user", {
+            "token": token
+        })
+
+        if response.ok:
+            display_users_table(response.json()["users"])
+        display_message(response)

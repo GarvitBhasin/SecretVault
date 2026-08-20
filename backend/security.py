@@ -26,6 +26,16 @@ def password_strong(password):
 
     return True if has_char and has_digit and has_symbol and is_long else False
 
+def check_credentials(email, password, confirm):
+    if not email_valid(email):
+        raise_error(400, "Invalid email.")
+
+    if confirm != password:
+        raise_error(400, "Passwords do not match.")
+
+    if not password_strong(password):
+        raise_error(422, "Password must have at least one character, digit, symbol and must be more than 8 characters long.")
+
 def hash_password(password):
     return password_hash.hash(password)
 
@@ -71,7 +81,7 @@ def verify_user(token, session):
 
     return user_id
 
-def validate_user(session, user_id, minimum_access_role):
+def validate_user(session, user_id, minimum_access_level):
 
     # Extract user's role
     role = session.execute(
@@ -80,7 +90,7 @@ def validate_user(session, user_id, minimum_access_role):
     ).scalar_one_or_none()
 
     # Check if role's access level is lower than allowed
-    if role < minimum_access_role:
+    if Role[role.upper()].value < minimum_access_level.value:
         raise_error(403, "Access not granted. Please request admin/owner for access")
 
 def encrypt(plaintext):

@@ -1,5 +1,5 @@
 import typer
-from helpers import *
+from cli.helpers import *
 
 project_app = typer.Typer()
 

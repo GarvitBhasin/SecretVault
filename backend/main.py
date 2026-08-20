@@ -10,23 +10,13 @@ from sqlalchemy.exc import IntegrityError
 app = FastAPI()
 SessionLocal = sessionmaker(bind=engine)
 
-# AUTH
+# INIT
 
-@app.post("/add-user", status_code=201)
-def add_user(data: RegisterRequest):
+@app.post("/init", status_code=201)
+def init(data: InitRequest):
 
     # Check email validity, password pairs, role validity, and password strenght
-    if not email_valid(data.email):
-        raise_error(400, "Invalid email.")
-
-    if data.confirm != data.password:
-        raise_error(400, "Passwords do not match.")
-
-    if data.role not in range(1, 4):
-        raise_error(400, "Invalid role.")    
-    
-    if not password_strong(data.password):
-        raise_error(422, "Password must have at least one character, digit, symbol and must be more than 8 characters long.")
+    check_credentials(data.email, data.password, data.confirm)
 
     # Hash password
     hashed_pass = hash_password(data.password)
@@ -34,40 +24,33 @@ def add_user(data: RegisterRequest):
     try:
         session = SessionLocal()
 
-        user_id = verify_user(data.token, session)
-        validate_user(session, user_id, Role.ADMIN)
+        # Check if users exist
+        users_exist = session.execute(
+            select(Users)
+        ).all()
 
-        # Create user object and add to db
+        if users_exist:
+            raise_error(403, "SecretVault has already been initialized.")
+
+        # Add first user to db and create log
         user = Users(
             username = data.username,
             email = data.email,
             password_hash = hashed_pass,
-            role=data.role
+            role = Role.OWNER.name.lower() # First user is made owner 
         )
-    
+
         session.add(user)
         session.flush()
 
-        add_log(session, user_id, Action.CREATE, Asset.ACCOUNT, user.id)
+        add_log(session, user.id, Action.CREATE, Asset.ACCOUNT, user.id)
 
         session.commit()
-                
+
         return {
-            "message": "Created account."
+            "message": "Owner account created. You can now log in with your credentials."
         }
 
-    # Return error if email/username already exist
-    except IntegrityError as error:
-        session.rollback()
-
-        if "users_email_key" in str(error):
-            raise_error(409, "Email already registered.")
-
-        if "users_username_key" in str(error):
-            raise_error(409, "Username taken.")
-
-        raise
-        
     except Exception:
         session.rollback()
         raise
@@ -75,47 +58,7 @@ def add_user(data: RegisterRequest):
     finally:
         session.close()
 
-@app.delete("/remove-user")
-def remove_user(data: IDRequest):
-    try:
-        session = SessionLocal()
-
-        user_id = verify_user(data.token, session)
-        validate_user(session, user_id, Role.OWNER)
-
-        # Retrieve user to be deleted
-        user = session.execute(
-            select(Users)
-            .where(Users.id == data.id)
-        ).scalar_one_or_none()
-
-        # Perform security checks
-        if user is None:
-            raise_error(404, "User not found.")
-
-        if user.id == user_id:
-            raise_error(403, "Cannot delete your own account.")
-
-        if user.role == Role.OWNER:
-            raise_error(403, "Not allowed to delete owner account.")
-
-        # delete user and add log
-        session.delete(user)
-
-        add_log(session, user_id, Action.DELETE, Asset.ACCOUNT, user.id)
-
-        session.commit()
-
-        return {
-            "message": "Account deleted successfully."
-        }
-
-    except Exception:
-        session.rollback()
-        raise
-    
-    finally:
-        session.close()
+# AUTH
 
 @app.post("/login")
 def login(data: LoginRequest):
@@ -173,8 +116,8 @@ def me(data: TokenRequest):
     finally:
         session.close()
 
-@app.delete("/delete-user")
-def delete_user(data: TokenRequest):
+@app.delete("/delete-self")
+def delete_self(data: TokenRequest):
     try:
         session = SessionLocal()
 
@@ -194,11 +137,11 @@ def delete_user(data: TokenRequest):
         owner_count = session.execute(
             select(func.count(Users.id))
             .select_from(Users)
-            .where(Users.role == Role.OWNER)
+            .where(Users.role == Role.OWNER.name.lower())
         ).scalar_one()
 
         # Forbid user from deleting if user is owner and only one owner exists
-        if role == Role.OWNER and owner_count == 1:
+        if role == Role.OWNER.name.lower() and owner_count == 1:
             raise_error(403, "Organization must have atleast 1 owner.")
 
         # Delete user and add log
@@ -222,6 +165,177 @@ def delete_user(data: TokenRequest):
     finally:
         session.close()
 
+# USER
+
+@app.post("/add-user", status_code=201)
+def add_user(data: AddRequest):
+
+    # Check email validity, password pairs, role validity, and password strenght
+    check_credentials(data.email, data.password, data.confirm)
+
+    if data.role not in range(1, 4):
+        raise_error(400, "Invalid role.")    
+
+    # Hash password
+    hashed_pass = hash_password(data.password)
+
+    try:
+        session = SessionLocal()
+
+        user_id = verify_user(data.token, session)
+        validate_user(session, user_id, Role.ADMIN)
+
+        # Retrieve requester's role
+        self_role = session.execute(
+            select(Users.role)
+            .where(Users.id == user_id)
+        ).scalar_one()
+
+        # Check if admin attempts to create owner account
+        if Role(data.role) == Role.OWNER and self_role == Role.ADMIN.name.lower():
+            raise_error(403, "Admins cannot create owner accounts.")
+
+        # Create user object and add to db
+        user = Users(
+            username = data.username,
+            email = data.email,
+            password_hash = hashed_pass,
+            role=Role(data.role).name.lower()
+        )
+    
+        session.add(user)
+        session.flush()
+
+        add_log(session, user_id, Action.CREATE, Asset.ACCOUNT, user.id)
+
+        session.commit()
+                
+        return {
+            "message": "Created account."
+        }
+
+    # Return error if email/username already exist
+    except IntegrityError as error:
+        session.rollback()
+
+        if "users_email_key" in str(error):
+            raise_error(409, "Email already registered.")
+
+        if "users_username_key" in str(error):
+            raise_error(409, "Username taken.")
+
+        raise
+        
+    except Exception:
+        session.rollback()
+        raise
+
+    finally:
+        session.close()
+
+@app.delete("/remove-user")
+def remove_user(data: IDRequest):
+    try:
+        session = SessionLocal()
+
+        user_id = verify_user(data.token, session)
+        validate_user(session, user_id, Role.OWNER)
+
+        # Retrieve user to be deleted
+        user = session.execute(
+            select(Users)
+            .where(Users.id == data.id)
+        ).scalar_one_or_none()
+
+        # Perform security checks
+        if user is None:
+            raise_error(404, "User not found.")
+
+        if user.id == user_id:
+            raise_error(403, "Cannot delete your own account through this method.")
+
+        if user.role == Role.OWNER.name.lower():
+            raise_error(403, "Cannot delete owner account.")
+
+        # delete user and add log
+        session.delete(user)
+
+        add_log(session, user_id, Action.DELETE, Asset.ACCOUNT, user.id)
+
+        session.commit()
+
+        return {
+            "message": "Account deleted successfully."
+        }
+
+    except Exception:
+        session.rollback()
+        raise
+    
+    finally:
+        session.close()
+
+@app.patch("/edit-user")
+def edit_user(data: EditUserRequest):
+    try:
+        session = SessionLocal()
+
+        user_id = verify_user(data.token, session)
+        validate_user(session, user_id, Role.ADMIN)
+
+        if data.role not in range(1, 4):
+            raise_error(400, "Invalid role.")    
+
+        # Retrieve requester's role
+        self_role = session.execute(
+            select(Users.role)
+            .where(Users.id == user_id)
+        ).scalar_one()
+
+        # Retrieve role to be edited
+        editing_role = session.execute(
+            select(Users.role)
+            .where(Users.id == data.id)
+        ).scalar_one_or_none()
+
+        # Check if user not found
+        if editing_role is None:
+            raise_error(404, "User not found.")
+
+        # Cannot edit your own role
+        if user_id == data.id:
+            raise_error(400, "Cannot edit your own account")
+
+        # Admin cannot edit owner account
+        if editing_role == Role.OWNER.name.lower() and self_role == Role.ADMIN.name.lower():
+            raise_error(403, "Admins cannot alter owner accounts.")
+
+        # Admin cannot assign owner role
+        if self_role == Role.ADMIN.name.lower() and Role(data.role).name == Role.OWNER.name:
+            raise_error(403, "Admins cannot assign owner role.")
+
+        # Edit
+        session.execute(
+            update(Users)
+            .where(Users.id == data.id)
+            .values(role=Role(data.role).name.lower())
+        )
+
+        add_log(session, user_id, Action.UPDATE, Asset.ACCOUNT, data.id)
+
+        session.commit()
+
+        return {
+            "message": "Updated user role."
+        }
+
+    except Exception:
+        session.rollback()
+        raise
+
+    finally:
+        session.close()
+
 @app.get("/list-user")
 def list_users(data: TokenRequest):
     try:
@@ -233,11 +347,14 @@ def list_users(data: TokenRequest):
             select(Users)
         ).scalars().all()
 
+        if not users:
+            raise_error(404, "No users found.")
+
         users_arr = []
 
         for user in users:
             users_arr.append({
-                "id": user.id,
+                "id": str(user.id),
                 "email": user.email,
                 "username": user.username,
                 "role": user.role,
@@ -602,6 +719,8 @@ def get_secret(data: IDRequest):
         secret, username = result
 
         add_log(session, user_id, Action.READ, Asset.SECRET, data.id)
+
+        session.commit()
 
         return {
             "secret": f"Name: {secret.name}\nValue: {decrypt(secret.value)}\nDescription: {secret.description}\nCreator: {username if username else "Deleted user"}\nCreated At: {secret.created_at}\nLast Updated: {secret.updated_at}",

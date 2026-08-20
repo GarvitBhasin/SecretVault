@@ -72,18 +72,18 @@ class Asset(str, Enum):
     PROJECT = "PROJECT"
     SECRET = "SECRET"
 
-class Requests(Base):
-    __tablename__ = "requests"
-
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-
 Base.metadata.create_all(engine)
 
 # REQUEST TEMPLATES
 
-class RegisterRequest(BaseModel):
+class InitRequest(BaseModel):
+    username: str
+    email: str
+    password: str
+    confirm: str
+
+class AddRequest(BaseModel):
+    token: str
     username: str
     email: str
     password: str
@@ -110,9 +110,14 @@ class EditProjectRequest(BaseModel):
     id: int
     name: str
 
+class EditUserRequest(BaseModel):
+    token: str
+    id: int
+    role: int
+
 class SecretRequest(BaseModel):
+    token: str
     id: int
     name: str
     value: str
     description: str | None = None
-    token: str

@@ -1,5 +1,5 @@
 import typer
-from helpers import *
+from cli.helpers import *
 
 secrets_app = typer.Typer()
 
@@ -103,6 +103,7 @@ def get(
                 "id": id,
                 "token": token
             })
-            
-        print(response.json()["secret"])
+
+        if response.ok:
+            print(response.json()["secret"])
         display_message(response)

@@ -1,0 +1,9 @@
+[project]
+name = "secretvault"
+version = "0.1.0"
+
+[project.scripts]
+vault = "cli.main:app"
+
+[tool.setuptools]
+packages = ["cli", "backend"]

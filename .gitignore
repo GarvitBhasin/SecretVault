@@ -2,3 +2,4 @@ __pycache__/
 .env
 .venv/
 .session
+secretvault.egg-info/
