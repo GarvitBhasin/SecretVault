@@ -2,7 +2,7 @@ from jose import jwt, JWTError
 from datetime import timedelta
 from dotenv import load_dotenv
 from sqlalchemy import select
-from backend.database import Users, Role, Action
+from backend.database import Users, Role
 from backend.helpers import raise_error, now
 from cryptography.fernet import Fernet
 from pwdlib import PasswordHash
