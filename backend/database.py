@@ -90,6 +90,11 @@ class AddRequest(BaseModel):
     confirm: str
     role: int
 
+class ResetPasswordRequest(BaseModel):
+    password: str
+    confirm: str
+    token: str
+
 class LoginRequest(BaseModel):
     email: str
     password: str

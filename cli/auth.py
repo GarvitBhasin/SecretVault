@@ -52,3 +52,23 @@ def delete():
                 os.remove(".session")
 
             display_message(response)
+
+@auth_app.command()
+def reset(
+    new_pass: str = typer.Option(..., prompt="Enter new password:"),
+    confirm_pass: str = typer.Option(..., prompt="Confirm new password:")
+):
+    confirm = confirm_action()
+
+    if confirm:
+
+        token = get_session()
+
+        if token is not None:
+            response = send_request("patch", "/reset-password", {
+                "token": token,
+                "password": new_pass,
+                "confirm": confirm_pass
+            })
+
+            display_message(response)

@@ -165,6 +165,41 @@ def delete_self(data: TokenRequest):
     finally:
         session.close()
 
+@app.patch("/reset-password")
+def reset(data: ResetPasswordRequest):
+
+    if data.password != data.confirm:
+        raise_error(400, "Passwords do not match.")
+
+    if not password_strong(data.password):
+        raise_error(422, "Password must have at least one character, digit, symbol and must be more than 8 characters long.")
+
+    try:
+        session = SessionLocal()
+
+        user_id = verify_user(data.token, session)
+
+        session.execute(
+            update(Users)
+            .where(Users.id == user_id)
+            .values(password_hash=hash_password(data.password))
+        )
+
+        add_log(session, user_id, Action.UPDATE, Asset.ACCOUNT, user_id)
+
+        session.commit()
+
+        return {
+            "message": "Password reset successfully."
+        }
+
+    except Exception:
+        session.rollback()
+        raise
+
+    finally:
+        session.close()
+
 # USER
 
 @app.post("/add-user", status_code=201)
