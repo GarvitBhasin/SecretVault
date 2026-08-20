@@ -52,29 +52,38 @@ SecretVault is a single-tenant CLI based secrets manager designed to manage and 
 
 ## Local Setup
 ### Clone repository
-```git clone https://github.com/GarvitBhasin/SecretVault/
+```
+git clone https://github.com/GarvitBhasin/SecretVault/
 cd SecretVault
 ```
 ### Create virtual environment
-```python3 -m venv .venv
+```
+python3 -m venv .venv
 source .venv/bin/activate
 ```
 ### Install dependencies
-```pip install -r requirements.txt```
+```
+pip install -r requirements.txt
+```
 
 ### Database configuration
 Create a PostgreSQL database and configure the database connection through an environment variable.
 
 ### Configure environment variables
-```DB_URL=your_postgresql_connection_string
+```
+DB_URL=your_postgresql_connection_string
 SECRET_KEY=your_secret_key
 ```
 
 ### Run the backend
-```uvicorn backend.main:app --reload```
+```
+uvicorn backend.main:app --reload
+```
 
 ### Run the CLI
-```vault init```
+```
+vault init
+```
 
 ## What I Learnt
 I developed a stronger understanding of backend development, authentication, authorization, database design, and API architecture while building SecretVault. This helped me to a lot of new concepts including:
