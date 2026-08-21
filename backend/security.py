@@ -65,7 +65,7 @@ def verify_user(token, session):
         payload = jwt.decode(
             token, secret_key, algorithms=["HS256"]
         )
-    except JWTError, KeyError, ValueError:
+    except (JWTError, KeyError, ValueError):
         raise_error(401, "Invalid or expired token.")
 
     # Check if user exists in db and return user if found

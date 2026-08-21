@@ -44,7 +44,7 @@ def delete():
         token = get_session()
 
         if token is not None:
-            response = send_request("delete", "/delete-user", {
+            response = send_request("delete", "/delete-self", {
                 "token": token
             })
              
