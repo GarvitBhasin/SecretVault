@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase
+from sqlalchemy.orm import sessionmaker, Mapped, mapped_column, DeclarativeBase
 from sqlalchemy import String, Text, DateTime, ForeignKey, create_engine
 from pydantic import BaseModel
 from dotenv import load_dotenv
@@ -9,6 +9,7 @@ import os
 load_dotenv()
 database_url = os.getenv("DB_URL")
 engine = create_engine(database_url)
+SessionLocal = sessionmaker(bind=engine)
 
 # DB TABLES
 

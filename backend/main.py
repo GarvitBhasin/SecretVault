@@ -1,5 +1,4 @@
 from fastapi import FastAPI
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy import select, delete, update, func
 from pwdlib import PasswordHash
 from backend.security import *
@@ -8,7 +7,6 @@ from backend.helpers import *
 from sqlalchemy.exc import IntegrityError
 
 app = FastAPI()
-SessionLocal = sessionmaker(bind=engine)
 
 # INIT
 
