@@ -1,0 +1,59 @@
+from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy import create_engine
+from fastapi import Request, Depends
+from backend.helpers import raise_error
+from backend.security import verify_user, validate_user
+import os
+
+database_url = os.getenv("DB_URL")
+engine = create_engine(database_url)
+SessionLocal = sessionmaker(bind=engine)
+
+# Attempt db connection
+# Yield db and catch any exceptions
+# Perform cleanup (db.close()) at end of enpoint function
+def get_db():
+    try:
+        db = SessionLocal()
+
+        yield db
+    
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+# Extract token from auth header
+# Raise appropriate error if auth header invalid/missing
+# Use token to decode user_id and expiry
+# Raise appropriate for expired/invalid/tampered token
+# Check if user exists
+# Return user_id
+def get_user_id(request: Request, session: Session = Depends(get_db)):
+    auth = request.headers.get("Authorization")
+
+    if not auth:
+        raise_error(401, "Authorization token missing.")
+
+    if not auth.startswith("Bearer "):
+        raise_error(401, "Invalid authorization format.")
+
+    return verify_user(auth.removeprefix("Bearer "), session)
+
+# Use existing dependencies to:
+#   - Connect to db
+#   - Extract user_id and perform other security checks mentioned above
+# Extract user_id's role
+# Compare role's acces level (using Role enum) to minimum access level provided
+# Return user's role/appropriate error
+def require_role(minimum_access_role: str):
+    def checkrole(
+        session: Session = Depends(get_db),
+        user_id: int = Depends(get_user_id)
+    ):
+        role = validate_user(session, user_id, minimum_access_role)
+        return role
+    
+    return checkrole

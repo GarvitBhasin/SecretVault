@@ -1,17 +1,13 @@
-from sqlalchemy.orm import sessionmaker, Mapped, mapped_column, DeclarativeBase
+from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase
 from sqlalchemy import String, Text, DateTime, ForeignKey, create_engine
-from pydantic import BaseModel
 from dotenv import load_dotenv
 from datetime import datetime
 from enum import Enum
 import os
-
 load_dotenv()
+
 database_url = os.getenv("DB_URL")
 engine = create_engine(database_url)
-SessionLocal = sessionmaker(bind=engine)
-
-# DB TABLES
 
 class Base(DeclarativeBase):
     pass
@@ -24,11 +20,6 @@ class Users(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[str] = mapped_column(String(10), nullable=False)
-
-class Role(Enum):
-    VIEWER = 1
-    ADMIN = 2
-    OWNER = 3
 
 class Projects(Base):
     __tablename__ = "projects"
@@ -62,6 +53,11 @@ class Logs(Base):
     action_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     expiry: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 
+class Role(Enum):
+    VIEWER = 1
+    ADMIN = 2
+    OWNER = 3
+
 class Action(str, Enum):
     CREATE = "CREATE"
     READ = "READ"
@@ -74,56 +70,3 @@ class Asset(str, Enum):
     SECRET = "SECRET"
 
 Base.metadata.create_all(engine)
-
-# REQUEST TEMPLATES
-
-class InitRequest(BaseModel):
-    username: str
-    email: str
-    password: str
-    confirm: str
-
-class AddRequest(BaseModel):
-    token: str
-    username: str
-    email: str
-    password: str
-    confirm: str
-    role: int
-
-class ResetPasswordRequest(BaseModel):
-    password: str
-    confirm: str
-    token: str
-
-class LoginRequest(BaseModel):
-    email: str
-    password: str
-
-class TokenRequest(BaseModel):
-    token: str
-
-class CreateProjectRequest(BaseModel):
-    token: str
-    name: str
-
-class IDRequest(BaseModel):
-    token: str
-    id: int
-
-class EditProjectRequest(BaseModel):
-    token: str
-    id: int
-    name: str
-
-class EditUserRequest(BaseModel):
-    token: str
-    id: int
-    role: int
-
-class SecretRequest(BaseModel):
-    token: str
-    id: int
-    name: str
-    value: str
-    description: str | None = None

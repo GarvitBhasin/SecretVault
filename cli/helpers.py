@@ -37,10 +37,16 @@ def add_session(response):
 
 # API HELPERS
 
-def send_request(method, endpoint, payload):
+def create_header(token: str) -> dict[str, str]:
+    return {
+        "Authorization": f"Bearer {token}"
+    }
+
+def send_request(method, endpoint, headers=None, payload=None):
     return requests.request(
         method, 
         f"{backend_url}{endpoint}",
+        headers=headers,
         json=payload
     )
 

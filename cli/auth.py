@@ -8,10 +8,14 @@ def login(
     email: str = typer.Option(..., prompt="Enter email"),
     password: str = typer.Option(..., prompt="Enter password", hide_input=True)
 ):
-    response = send_request("post", "/login", {
-        "email": email,
-        "password": password,
-    })
+    response = send_request(
+        "post", 
+        "/login", 
+        {
+            "email": email,
+            "password": password
+        }
+    )
 
     if response.ok:
         add_session(response)
@@ -28,9 +32,11 @@ def me():
     token = get_session()
 
     if token is not None:
-        response = send_request("get", "/me", {
-            "token": token
-        })
+        response = send_request(
+            "get", 
+            "/me",
+            create_header(token)
+        )
 
         display_message(response)
 
@@ -44,9 +50,11 @@ def delete():
         token = get_session()
 
         if token is not None:
-            response = send_request("delete", "/delete-self", {
-                "token": token
-            })
+            response = send_request(
+                "delete", 
+                "/delete-self",
+                create_header(token)
+            )
              
             if response.ok:
                 os.remove(".session")
@@ -65,10 +73,14 @@ def reset(
         token = get_session()
 
         if token is not None:
-            response = send_request("patch", "/reset-password", {
-                "token": token,
-                "password": new_pass,
-                "confirm": confirm_pass
-            })
+            response = send_request(
+                "patch", 
+                "/reset-password", 
+                create_header(token),
+                {
+                    "password": new_pass,
+                    "confirm": confirm_pass
+                }
+            )
 
             display_message(response)

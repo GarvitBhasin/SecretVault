@@ -19,14 +19,18 @@ def add(
         token = get_session()
 
         if token is not None:
-            response = send_request("post", "/add-user", {
-                "token": token,
-                "username": username,
-                "email": email,
-                "password": password,
-                "confirm": confirm_pass,
-                "role": role
-            })
+            response = send_request(
+                "post", 
+                "/add-user",
+                create_header(token),
+                {
+                    "username": username,
+                    "email": email,
+                    "password": password,
+                    "confirm": confirm_pass,
+                    "role": role
+                }
+            )
 
             display_message(response)
 
@@ -41,10 +45,14 @@ def remove(
         token = get_session()
 
         if token is not None:
-            response = send_request("delete", "/remove-user", {
-                "id": id,
-                "token": token
-            })
+            response = send_request(
+                "delete", 
+                "/remove-user", 
+                create_header(token),
+                {
+                    "id": id
+                }
+            )
 
         display_message(response)
 
@@ -60,11 +68,15 @@ def edit(
         token = get_session()
 
         if token is not None:
-            response = send_request("patch", "/edit-user", {
-                "id": id,
-                "role": role,
-                "token": token
-            })
+            response = send_request(
+                "patch", 
+                "/edit-user",
+                create_header(token),
+                {
+                    "id": id,
+                    "role": role
+                }
+            )
 
         display_message(response)
 
@@ -74,10 +86,15 @@ def list():
     token = get_session()
     
     if token is not None:
-        response = send_request("get", "/list-user", {
-            "token": token
-        })
+        response = send_request(
+            "get", 
+            "/list-user", 
+            {
+                "token": token
+            }
+        )
 
         if response.ok:
             display_users_table(response.json()["users"])
+            
         display_message(response)

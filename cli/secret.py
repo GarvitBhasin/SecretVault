@@ -14,13 +14,17 @@ def create(
     token = get_session()
 
     if token is not None:
-        response = send_request("post", "/create-secret", {
-            "id": id,
-            "name": name,
-            "value": value,
-            "description": description if description else None,
-            "token": token
-        })
+        response = send_request(
+            "post", 
+            "/create-secret", 
+            create_header(token),
+            {
+                "id": id,
+                "name": name,
+                "value": value,
+                "description": description if description else None
+            }
+        )
 
         display_message(response)
 
@@ -35,10 +39,14 @@ def delete(
         token = get_session()
 
         if token is not None:
-            response = send_request("delete", "/delete-secret", {
-                "id": id,
-                "token": token
-            })
+            response = send_request(
+                "delete", 
+                "/delete-secret",
+                create_header(token), 
+                {
+                    "id": id,
+                }
+            )
 
             display_message(response)
 
@@ -61,13 +69,17 @@ def edit(
         token = get_session()
         
         if token is not None:
-            response = send_request("patch", "/edit-secret", {
-                "id": id,
-                "token": token,
-                "description": description,
-                "name": name,
-                "value": value
-            })
+            response = send_request(
+                "patch", 
+                "/edit-secret", 
+                create_header(token),
+                {
+                    "id": id,
+                    "description": description,
+                    "name": name,
+                    "value": value
+                }
+            )
 
             display_message(response)
 
@@ -78,10 +90,14 @@ def list(
     token = get_session()
 
     if token is not None:
-        response = send_request("get", "/list-secret", {
-            "id": id,
-            "token": token
-        })
+        response = send_request(
+            "get", 
+            "/list-secret",
+            create_header(token), 
+            {
+                "id": id
+            }
+        )
 
         if response.ok:
             display_secrets_table(response.json()["secrets"])
@@ -99,11 +115,16 @@ def get(
         token = get_session()
 
         if token is not None:
-            response = send_request("get", "/get-secret", {
-                "id": id,
-                "token": token
-            })
+            response = send_request(
+                "get", 
+                "/get-secret",
+                create_header(token), 
+                {
+                    "id": id,
+                }
+            )
 
         if response.ok:
             print(response.json()["secret"])
+
         display_message(response)

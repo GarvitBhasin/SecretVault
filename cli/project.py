@@ -10,10 +10,14 @@ def create(
     token = get_session()
 
     if token is not None:
-        response = send_request("post", "/create-project", {
-            "name": name,
-            "token": token
-        })
+        response = send_request(
+            "post", 
+            "/create-project",
+            create_header(token),
+            {
+                "name": name
+            }
+        )
 
         display_message(response)
 
@@ -28,10 +32,14 @@ def delete(
         token = get_session()
 
         if token is not None:
-            response = send_request("delete", "/delete-project", {
-                "id": id,
-                "token": token
-            })
+            response = send_request(
+                "delete", 
+                "/delete-project",
+                create_header(token), 
+                {
+                    "id": id
+                }
+            )
 
             display_message(response)
 
@@ -47,11 +55,15 @@ def edit(
         token = get_session()
 
         if token is not None:
-            response = send_request("patch", "/edit-project", {
-                "id": id,
-                "token": token,
-                "name": name
-            })
+            response = send_request(
+                "patch", 
+                "/edit-project",
+                create_header(token), 
+                {
+                    "id": id,
+                    "name": name
+                }
+            )
 
             display_message(response)
 
@@ -60,9 +72,11 @@ def list():
     token = get_session()
     
     if token is not None:
-        response = send_request("get", "/list-project", {
-            "token": token
-        })
+        response = send_request(
+            "get", 
+            "/list-project",
+            create_header(token) 
+        )
 
         if response.ok:
             display_projects_table(response.json()["projects"])

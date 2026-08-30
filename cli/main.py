@@ -19,12 +19,16 @@ def init():
     password = typer.prompt("Enter password", hide_input=True)
     confirm = typer.prompt("Confirm password", hide_input=True)
 
-    response = send_request("post", "/init", {
-        "username": username,
-        "email": email,
-        "password": password,
-        "confirm": confirm
-    })
+    response = send_request(
+        "post", 
+        "/init", 
+        {
+            "username": username,
+            "email": email,
+            "password": password,
+            "confirm": confirm
+        }
+    )
 
     display_message(response)
 
