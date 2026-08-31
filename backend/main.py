@@ -132,7 +132,7 @@ def reset_pass(
 
 # USER
 
-@app.post("/create-user", status_code=201)
+@app.post("/user", status_code=201)
 def create_usr(
     data: AddUserRequest, 
     session: Session = Depends(get_db),
@@ -157,16 +157,16 @@ def create_usr(
         "message": "Created account."
     }
 
-@app.delete("/delete-user")
+@app.delete("/user/{deletion_id}")
 def delete_usr(
-    data: ResourceIDRequest,
+    deletion_id: int,
     session: Session = Depends(get_db),
     user_id: int = Depends(get_user_id),
     self_role: Role = Depends(require_role(Role.OWNER))
 ):
 
     delete_user(
-        data.id,
+        deletion_id,
         user_id,
         session
     )    
@@ -177,8 +177,9 @@ def delete_usr(
         "message": "Account deleted successfully."
     }
 
-@app.patch("/edit-user")
-def edit_user(
+@app.patch("/user/{editing_id}")
+def edit_usr(
+    editing_id: int,
     data: EditUserRequest,
     session: Session = Depends(get_db),
     user_id: int = Depends(get_user_id),
@@ -186,7 +187,7 @@ def edit_user(
 ):
 
     edit_user(
-        data.id,
+        editing_id,
         data.role,
         self_role,
         user_id,
@@ -199,7 +200,7 @@ def edit_user(
         "message": "Updated user role."
     }
 
-@app.get("/list-users")
+@app.get("/users")
 def list_usrs(
     session: Session = Depends(get_db),
     user_id: int = Depends(get_user_id)
@@ -214,9 +215,9 @@ def list_usrs(
 
 # PROJECTS
 
-@app.post("/create-project", status_code=201)
+@app.post("/projects", status_code=201)
 def create_proj(
-    data: CreateProjectRequest,
+    data: NameRequest,
     session: Session = Depends(get_db),
     user_id: int = Depends(get_user_id),
     self_role: Role = Depends(require_role(Role.ADMIN))
@@ -234,16 +235,16 @@ def create_proj(
         "message": "Created project."
     }
 
-@app.delete("/delete-project")
+@app.delete("/projects/{project_id}")
 def delete_proj(
-    data: ResourceIDRequest,
+    project_id: int,
     session: Session = Depends(get_db),
     user_id: int = Depends(get_user_id),
     self_role: Role = Depends(require_role(Role.OWNER))
 ):
 
     delete_project(
-        data.id,
+        project_id,
         user_id,
         session
     )
@@ -254,9 +255,10 @@ def delete_proj(
         "message": "Deleted project."
     }
 
-@app.patch("/edit-project")
+@app.patch("/projects/{project_id}")
 def edit_proj(
-    data: EditProjectRequest,
+    project_id: int,
+    data: NameRequest,
     session: Session = Depends(get_db),
     user_id: int = Depends(get_user_id),
     self_role: Role = Depends(require_role(Role.ADMIN))
@@ -264,7 +266,7 @@ def edit_proj(
 
     edit_project(
         data.name,
-        data.id,
+        project_id,
         user_id,
         session
     )
@@ -276,7 +278,7 @@ def edit_proj(
     }
 
 
-@app.get("/list-project")
+@app.get("/projects")
 def list_proj(
     session: Session = Depends(get_db),
     user_id: int = Depends(get_user_id)
@@ -291,8 +293,9 @@ def list_proj(
 
 # SECRETS
 
-@app.post("/create-secret", status_code=201)
+@app.post("/projects/{project_id}/secrets", status_code=201)
 def create_sec(
+    project_id: int,
     data: SecretInfoRequest,
     session: Session = Depends(get_db),
     user_id: int = Depends(get_user_id),
@@ -300,7 +303,7 @@ def create_sec(
 ):
 
     create_secret(
-        data.id,
+        project_id,
         data.name,
         data.description,
         data.value,
@@ -314,16 +317,16 @@ def create_sec(
         "message": "Created secret."
     }
 
-@app.delete("/delete-secret")
+@app.delete("/secrets/{secret_id}")
 def delete_sec(
-    data: ResourceIDRequest,
+    secret_id: int,
     session: Session = Depends(get_db),
     user_id: int = Depends(get_user_id),
     self_role: Role = Depends(require_role(Role.OWNER))
 ):
 
     delete_secret(
-        data.id,
+        secret_id,
         user_id,
         session
     )
@@ -334,8 +337,9 @@ def delete_sec(
         "message": "Deleted secret."
     }
 
-@app.patch("/edit-secret")
+@app.patch("/secrets/{secret_id}")
 def edit_sec(
+    secret_id: int,
     data: SecretInfoRequest,
     session: Session = Depends(get_db),
     user_id: int = Depends(get_user_id),
@@ -343,7 +347,7 @@ def edit_sec(
 ):
 
     edit_secret(
-        data.id,
+        secret_id,
         data.name,
         data.value,
         data.description,
@@ -357,29 +361,29 @@ def edit_sec(
         "message": "Edited secret."
     }
 
-@app.get("/list-secret")
+@app.get("/projects/{project_id}/secrets")
 def list_sec(
-    data: ResourceIDRequest,
+    project_id: int,
     session: Session = Depends(get_db),
     user_id: int = Depends(get_user_id)
 ):
 
-    secrets = list_secrets(session)
+    secrets = list_secrets(project_id, session)
 
     return {
         "secrets": secrets,
         "message": "Loaded secrets."
     }
 
-@app.get("/get-secret")
-def get_secret(
-    data: ResourceIDRequest,
+@app.get("/secrets/{secret_id}")
+def get_sec(
+    secret_id: int,
     session: Session = Depends(get_db),
     user_id: int = Depends(get_user_id)
 ):
 
     secret = get_secret(
-        data.id,
+        secret_id,
         user_id,
         session
     )

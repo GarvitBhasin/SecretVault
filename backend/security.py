@@ -62,17 +62,17 @@ def encode_token(data: dict):
 
 def verify_user(token: str, session: Session):
 
-    # Decode token for user_id and expiry; raise error if invalid/expired.
+    # Decode token for user_id and expiry
+    # Attempt in tryblock to check for expired/invalid/tampered token or malformed sub
     try:
         payload = jwt.decode(
             token, secret_key, algorithms=["HS256"]
         )
+        user_id = int(payload["sub"])
     except (JWTError, KeyError, ValueError):
         raise_error(401, "Invalid or expired token.")
 
     # Check if user exists in db and return user if found
-    user_id = int(payload["sub"])
-
     user = session.execute(
         select(Users.id)
         .where(Users.id == user_id)

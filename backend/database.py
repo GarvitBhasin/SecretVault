@@ -46,7 +46,7 @@ class Logs(Base):
     __tablename__ = "logs"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    actor_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    actor_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     action: Mapped[str] = mapped_column(String(25), nullable=False)
     asset_type: Mapped[str] = mapped_column(String(25), nullable=False)
     asset_id: Mapped[int] = mapped_column(nullable=False)

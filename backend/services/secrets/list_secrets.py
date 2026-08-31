@@ -5,7 +5,6 @@ from backend.helpers import raise_error
 
 def list_secrets(
     id: int,
-    user_id: int,
     session: Session
 ):
     # Check if project exists

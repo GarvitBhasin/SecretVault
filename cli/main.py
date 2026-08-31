@@ -10,9 +10,9 @@ app = typer.Typer()
 
 @app.command()
 def init():
-    console.print("[blue]-------------------------[/blue]")
+    console.print("[Green]-------------------------[/Green]")
     console.print("SecretVault Initial Setup")
-    console.print("[blue]-------------------------[/blue]")
+    console.print("[Green]-------------------------[/Green]")
 
     username = typer.prompt("Enter username")
     email = typer.prompt("Enter email")

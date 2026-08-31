@@ -24,22 +24,13 @@ class LoginRequest(BaseModel):
 class DeleteSelfRequest(BaseModel):
     password: str
 
-class CreateProjectRequest(BaseModel):
-    name: str
-
-class ResourceIDRequest(BaseModel):
-    id: int
-
-class EditProjectRequest(BaseModel):
-    id: int
+class NameRequest(BaseModel):
     name: str
 
 class EditUserRequest(BaseModel):
-    id: int
     role: int
 
 class SecretInfoRequest(BaseModel):
-    id: int
     name: str
     value: str
     description: str | None = None

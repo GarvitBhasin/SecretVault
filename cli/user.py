@@ -4,7 +4,7 @@ from cli.helpers import *
 user_app = typer.Typer()
 
 @user_app.command()
-def add(
+def create(
     username: str = typer.Option(..., prompt="Enter a username"),
     email: str = typer.Option(..., prompt="Enter an email"),
     password: str = typer.Option(..., prompt="Enter a password", hide_input=True),
@@ -21,7 +21,7 @@ def add(
         if token is not None:
             response = send_request(
                 "post", 
-                "/add-user",
+                "/user",
                 create_header(token),
                 {
                     "username": username,
@@ -35,7 +35,7 @@ def add(
             display_message(response)
 
 @user_app.command()
-def remove(
+def delete(
     id: int = typer.Option(..., prompt="Enter ID of account to be deleted")
 ):
     confirm = confirm_action()
@@ -47,7 +47,7 @@ def remove(
         if token is not None:
             response = send_request(
                 "delete", 
-                "/remove-user", 
+                "/user", 
                 create_header(token),
                 {
                     "id": id
@@ -70,7 +70,7 @@ def edit(
         if token is not None:
             response = send_request(
                 "patch", 
-                "/edit-user",
+                "/user",
                 create_header(token),
                 {
                     "id": id,
@@ -88,7 +88,7 @@ def list():
     if token is not None:
         response = send_request(
             "get", 
-            "/list-user", 
+            "/users", 
             {
                 "token": token
             }
@@ -96,5 +96,5 @@ def list():
 
         if response.ok:
             display_users_table(response.json()["users"])
-            
+
         display_message(response)

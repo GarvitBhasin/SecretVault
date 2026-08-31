@@ -12,7 +12,7 @@ def create(
     if token is not None:
         response = send_request(
             "post", 
-            "/create-project",
+            "/project",
             create_header(token),
             {
                 "name": name
@@ -34,11 +34,8 @@ def delete(
         if token is not None:
             response = send_request(
                 "delete", 
-                "/delete-project",
+                f"/projects/{id}",
                 create_header(token), 
-                {
-                    "id": id
-                }
             )
 
             display_message(response)
@@ -57,10 +54,9 @@ def edit(
         if token is not None:
             response = send_request(
                 "patch", 
-                "/edit-project",
+                f"/projects/{id}",
                 create_header(token), 
                 {
-                    "id": id,
                     "name": name
                 }
             )
@@ -74,7 +70,7 @@ def list():
     if token is not None:
         response = send_request(
             "get", 
-            "/list-project",
+            "/projects",
             create_header(token) 
         )
 

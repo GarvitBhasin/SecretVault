@@ -16,10 +16,9 @@ def create(
     if token is not None:
         response = send_request(
             "post", 
-            "/create-secret", 
+            f"/projects/{id}/secrets", 
             create_header(token),
             {
-                "id": id,
                 "name": name,
                 "value": value,
                 "description": description if description else None
@@ -41,11 +40,8 @@ def delete(
         if token is not None:
             response = send_request(
                 "delete", 
-                "/delete-secret",
+                f"/secrets/{id}",
                 create_header(token), 
-                {
-                    "id": id,
-                }
             )
 
             display_message(response)
@@ -71,13 +67,12 @@ def edit(
         if token is not None:
             response = send_request(
                 "patch", 
-                "/edit-secret", 
+                f"/secret/{id}", 
                 create_header(token),
                 {
-                    "id": id,
-                    "description": description,
                     "name": name,
-                    "value": value
+                    "value": value,
+                    "description": description,
                 }
             )
 
@@ -92,11 +87,8 @@ def list(
     if token is not None:
         response = send_request(
             "get", 
-            "/list-secret",
+            f"/projects/{id}/secrets",
             create_header(token), 
-            {
-                "id": id
-            }
         )
 
         if response.ok:
@@ -117,11 +109,8 @@ def get(
         if token is not None:
             response = send_request(
                 "get", 
-                "/get-secret",
+                f"/secret/{id}",
                 create_header(token), 
-                {
-                    "id": id,
-                }
             )
 
         if response.ok:
