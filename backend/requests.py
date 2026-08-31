@@ -41,4 +41,4 @@ class EditUserRequest(BaseModel):
 class SecretInfoRequest(BaseModel):
     name: str
     value: str
-    description: str | None = None
+    description: str

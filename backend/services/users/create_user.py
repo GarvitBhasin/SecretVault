@@ -12,14 +12,12 @@ def create_user(
     password: str,
     confirm: str,
     role: int,
-    user_id: int,
-    self_role: Role,
+    user: Users,
     session: Session,
 ):
 
     # Check if username/email are alredy in use
     email_exists = session.scalar(select(Users).where(Users.email == email))
-
     username_exists = session.scalar(select(Users).where(Users.username == username))
 
     if email_exists:
@@ -35,18 +33,18 @@ def create_user(
         raise_error(400, "Invalid role.")
 
     # Forbid admins from creating owner account
-    if Role(role) == Role.OWNER and self_role == Role.ADMIN:
+    if Role(role) == Role.OWNER and user.role == Role.ADMIN.name:
         raise_error(403, "Admins cannot create owner accounts.")
 
     # Create user object and add to db
-    user = Users(
+    new_user = Users(
         username=username,
         email=email,
         password_hash=hash_password(password),
         role=Role(role).name,
     )
 
-    session.add(user)
+    session.add(new_user)
     session.flush()
 
-    add_log(session, user_id, Action.CREATE, Asset.ACCOUNT, user.id)
+    add_log(session, user.id, Action.CREATE, Asset.ACCOUNT, new_user.id)

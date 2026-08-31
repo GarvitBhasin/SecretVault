@@ -2,14 +2,20 @@ import os
 from datetime import datetime
 from enum import Enum
 
+from backend.helpers import raise_error
 from dotenv import load_dotenv
 from sqlalchemy import DateTime, ForeignKey, String, Text, create_engine
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
 load_dotenv()
 
 database_url = os.getenv("DB_URL")
+
+if database_url is None:
+    raise_error(500, "An error occured. Please try again.")
+
 engine = create_engine(database_url)
+SessionLocal = sessionmaker(bind=engine)
 
 
 class Base(DeclarativeBase):

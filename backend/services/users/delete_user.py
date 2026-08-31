@@ -5,21 +5,21 @@ from backend.database import Action, Asset, Role, Users
 from backend.helpers import add_log, raise_error
 
 
-def delete_user(id: int, user_id: int, session: Session):
+def delete_user(id: int, user: Users, session: Session):
     # Retrieve user to be deleted
-    user = session.execute(select(Users).where(Users.id == id)).scalar_one_or_none()
+    deleting_user = session.execute(select(Users).where(Users.id == id)).scalar_one_or_none()
 
     # Perform security checks
-    if user is None:
+    if delete_user is None:
         raise_error(404, "User not found.")
 
-    if user.id == user_id:
+    if deleting_user.id == user.id:
         raise_error(403, "Cannot delete your own account through this method.")
 
-    if user.role == Role.OWNER.name:
+    if deleting_user.role == Role.OWNER.name:
         raise_error(403, "Cannot delete owner account.")
 
     # delete user and add log
     session.delete(user)
 
-    add_log(session, user_id, Action.DELETE, Asset.ACCOUNT, user.id)
+    add_log(session, user.id, Action.DELETE, Asset.ACCOUNT, deleting_user.id)

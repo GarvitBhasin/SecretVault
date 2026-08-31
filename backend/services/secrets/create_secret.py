@@ -1,13 +1,13 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from backend.database import Action, Asset, Projects, Secrets
+from backend.database import Action, Asset, Projects, Secrets, Users
 from backend.helpers import add_log, now, raise_error, update_project_timestamp
 from backend.security import encrypt
 
 
 def create_secret(
-    id: int, name: str, description: str, value: str, user_id: int, session: Session
+    id: int, name: str, description: str, value: str, user: Users, session: Session
 ):
     project = session.execute(
         select(Projects).where(Projects.id == id)
@@ -34,4 +34,4 @@ def create_secret(
     # Update project last updated column
     update_project_timestamp(session, id)
 
-    add_log(session, user_id, Action.CREATE, Asset.SECRET, secret.id)
+    add_log(session, user.id, Action.CREATE, Asset.SECRET, secret.id)

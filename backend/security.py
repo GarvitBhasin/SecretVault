@@ -17,15 +17,21 @@ load_dotenv()
 secret_key = os.getenv("SECRET_KEY")
 encryption_key = os.getenv("ENCRYPTION_KEY")
 
+if secret_key is None:
+    raise RuntimeError(500, "An error occured. Please try again.")
+
+if encryption_key is None:
+    raise RuntimeError(500, "An error occured. Please try again.")
+
 password_hash = PasswordHash.recommended()
 fernet = Fernet(encryption_key)
 
 
-def email_valid(email: str):
+def email_valid(email: str) -> bool:
     return bool(re.match(r"^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$", email))
 
 
-def password_strong(password: str):
+def password_strong(password: str) -> bool:
     has_char = any(char.isalpha() for char in password)
     has_digit = any(char.isdigit() for char in password)
     has_symbol = any(not char.isalnum() for char in password)
@@ -34,7 +40,7 @@ def password_strong(password: str):
     return has_char and has_digit and has_symbol and is_long
 
 
-def check_credentials(email: str, password: str, confirm: str):
+def check_credentials(email: str, password: str, confirm: str) -> None:
     if not email_valid(email):
         raise_error(400, "Invalid email.")
 
@@ -48,16 +54,16 @@ def check_credentials(email: str, password: str, confirm: str):
         )
 
 
-def hash_password(password: str):
+def hash_password(password: str) -> str:
     return password_hash.hash(password)
 
 
-def verify_password(password: str, hash: str):
+def verify_password(password: str, hash: str) -> None:
     if not password_hash.verify(password, hash):
         raise_error(401, "Incorrect email or password.")
 
 
-def encode_token(data: dict):
+def encode_token(data: dict) -> str:
 
     # Generate expiry and add to data
     expiry = now() + timedelta(minutes=45)
@@ -74,10 +80,10 @@ def encode_token(data: dict):
     return token
 
 
-def verify_user(token: str, session: Session):
+def verify_user(token: str, session: Session) -> Users:
 
     # Decode token for user_id and expiry
-    # Attempt in tryblock to check for expired/invalid/tampered token or malformed sub
+    # Check for expired/invalid/tampered token or malformed sub
     try:
         payload = jwt.decode(token, secret_key, algorithms=["HS256"])
         user_id = int(payload["sub"])
@@ -92,26 +98,19 @@ def verify_user(token: str, session: Session):
     if user is None:
         raise_error(404, "User not found.")
 
-    return user_id
+    return user
 
 
-def validate_user(session: Session, user_id: int, minimum_access_level: int):
-
-    # Extract user's role
-    role = session.execute(
-        select(Users.role).where(Users.id == user_id)
-    ).scalar_one_or_none()
+def validate_user(session: Session, user: Users, minimum_access_level: Role) -> None:
 
     # Check if role's access level is lower than allowed
-    if Role[role].value < minimum_access_level.value:
+    if Role[user.role].value < minimum_access_level.value:
         raise_error(403, "Access not granted. Please request admin/owner for access")
 
-    return Role[role].name
 
-
-def encrypt(plaintext: str):
+def encrypt(plaintext: str) -> str:
     return fernet.encrypt(plaintext.encode()).decode()
 
 
-def decrypt(ciphertext: str):
+def decrypt(ciphertext: str) -> str:
     return fernet.decrypt(ciphertext.encode()).decode()

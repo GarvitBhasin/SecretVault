@@ -1,17 +1,20 @@
-from sqlalchemy import update
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from backend.database import Action, Asset, Projects
+from backend.database import Action, Asset, Projects, Users
 from backend.helpers import add_log, now, raise_error
 
 
-def edit_project(name: str, id: int, user_id: int, session: Session):
+def edit_project(name: str, id: int, user: Users, session: Session):
     # Edit project and add log
-    result = session.execute(
-        update(Projects).where(Projects.id == id).values(name=name, updated_at=now())
-    )
+    project = session.execute(
+        select(Projects).where(Projects.id == id)
+    ).scalar_one_or_none()
 
-    if result.rowcount == 0:
+    if project is None:
         raise_error(404, "Project not found.")
 
-    add_log(session, user_id, Action.UPDATE, Asset.PROJECT, id)
+    project.name = name
+    project.updated_at = now()
+
+    add_log(session, user.id, Action.UPDATE, Asset.PROJECT, id)

@@ -3,11 +3,12 @@ from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException
 from sqlalchemy import update
 from sqlalchemy.orm import Session
+from typing import NoReturn
 
 from backend.database import Action, Asset, Logs, Projects
 
 
-def raise_error(code: int, detail: str):
+def raise_error(code: int, detail: str) -> NoReturn:
     raise HTTPException(status_code=code, detail=detail)
 
 

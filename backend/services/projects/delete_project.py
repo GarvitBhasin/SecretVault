@@ -1,15 +1,19 @@
-from sqlalchemy import delete
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from backend.database import Action, Asset, Projects
+from backend.database import Action, Asset, Projects, Users
 from backend.helpers import add_log, raise_error
 
 
-def delete_project(id: int, user_id: int, session: Session):
+def delete_project(id: int, user: Users, session: Session):
     # Delete project and add log
-    project = session.execute(delete(Projects).where(Projects.id == id))
+    project = session.execute(
+        select(Projects).where(Projects.id == id)
+    ).scalar_one_or_none()
 
-    if project.rowcount == 0:
+    if project is None:
         raise_error(404, "Project not found.")
 
-    add_log(session, user_id, Action.DELETE, Asset.PROJECT, id)
+    session.delete(project)
+
+    add_log(session, user.id, Action.DELETE, Asset.PROJECT, id)

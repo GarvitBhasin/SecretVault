@@ -6,11 +6,7 @@ from backend.helpers import add_log, raise_error
 from backend.security import verify_password
 
 
-def delete_self(password: str, user_id: int, session: Session):
-    # Retrieve user's role and hash
-    user = session.execute(
-        select(Users).where(Users.id == user_id)
-    ).scalar_one_or_none()
+def delete_self(password: str, user: Users, session: Session):
 
     # Check password
     verify_password(password, user.password_hash)
@@ -29,4 +25,4 @@ def delete_self(password: str, user_id: int, session: Session):
     # Delete user and add log
     session.delete(user)
 
-    add_log(session, user_id, Action.DELETE, Asset.ACCOUNT, user_id)
+    add_log(session, user.id, Action.DELETE, Asset.ACCOUNT, user.id)

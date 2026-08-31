@@ -1,13 +1,13 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from backend.database import Action, Asset, Secrets
+from backend.database import Action, Asset, Secrets, Users
 from backend.helpers import add_log, now, raise_error, update_project_timestamp
 from backend.security import encrypt
 
 
 def edit_secret(
-    id: int, name: str, value: str, description: str, user_id, session: Session
+    id: int, name: str, value: str, description: str, user: Users, session: Session
 ):
     # Find secret
     secret = session.execute(
@@ -26,4 +26,4 @@ def edit_secret(
     # Update project's last updated column and add log
     update_project_timestamp(session, secret.project_id)
 
-    add_log(session, user_id, Action.UPDATE, Asset.SECRET, id)
+    add_log(session, user.id, Action.UPDATE, Asset.SECRET, id)
