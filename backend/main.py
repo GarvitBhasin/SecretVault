@@ -81,7 +81,10 @@ def me(
     user: Users = Depends(get_user)
 ):
     return (
-        f"Loaded user details.\nUsername: {user.username}\nEmail: {user.email}\nRole: {user.role.lower()}",
+        f"Loaded user details.\n"
+        f"Username: {user.username}\n"
+        f"Email: {user.email}\n"
+        f"Role: {user.role.lower()}"
     )
 
 @app.delete("/delete-self")

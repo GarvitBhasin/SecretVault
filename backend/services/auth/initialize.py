@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from backend.database import Action, Asset, Role, Users
 from backend.helpers import add_log, raise_error
-from backend.security import check_credentials, hash_password
+from backend.security import check_input, hash_password
 
 
 def initialize_vault(
@@ -16,7 +16,7 @@ def initialize_vault(
         raise_error(403, "SecretVault has already been initialized.")
 
     # Check email validity, password pairs, and password strength
-    check_credentials(email, password, confirm)
+    check_input(password, email, confirm)
 
     # Hash password
     hashed_pass = hash_password(password)

@@ -2,10 +2,11 @@ import os
 from datetime import datetime
 from enum import Enum
 
-from backend.helpers import raise_error
 from dotenv import load_dotenv
 from sqlalchemy import DateTime, ForeignKey, String, Text, create_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
+
+from backend.helpers import raise_error
 
 load_dotenv()
 

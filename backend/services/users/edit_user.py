@@ -1,4 +1,4 @@
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.database import Action, Asset, Role, Users
@@ -12,7 +12,7 @@ def edit_user(id: int, role: int, user: Users, session: Session):
 
     # Retrieve role to be edited
     editing_user = session.execute(
-        select(Users.role).where(Users.id == id)
+        select(Users).where(Users.id == id)
     ).scalar_one_or_none()
 
     # Check if user not found

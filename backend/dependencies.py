@@ -48,10 +48,5 @@ def get_user(request: Request, session: Session = Depends(get_db)):
 # Compare role's acces level (using Role enum) to minimum access level provided
 # Return user's role/appropriate error
 def require_role(minimum_access_role: Role):
-    def checkrole(
-        session: Session = Depends(get_db), user: Users = Depends(get_user)
-    ):
-        role = validate_user(session, user.id, minimum_access_role)
-        return role
-
-    return checkrole
+    def checkrole(session: Session = Depends(get_db), user: Users = Depends(get_user)):
+        validate_user(session, user, minimum_access_role)

@@ -7,10 +7,12 @@ from backend.helpers import add_log, raise_error
 
 def delete_user(id: int, user: Users, session: Session):
     # Retrieve user to be deleted
-    deleting_user = session.execute(select(Users).where(Users.id == id)).scalar_one_or_none()
+    deleting_user = session.execute(
+        select(Users).where(Users.id == id)
+    ).scalar_one_or_none()
 
     # Perform security checks
-    if delete_user is None:
+    if deleting_user is None:
         raise_error(404, "User not found.")
 
     if deleting_user.id == user.id:

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from backend.database import Action, Asset, Role, Users
 from backend.helpers import add_log, raise_error
-from backend.security import check_credentials, hash_password
+from backend.security import check_input, hash_password
 
 
 def create_user(
@@ -27,10 +27,7 @@ def create_user(
         raise_error(409, "Username is already taken.")
 
     # Check email validity, password pairs, role validity and password strenght
-    check_credentials(email, password, confirm)
-
-    if role not in range(1, 4):
-        raise_error(400, "Invalid role.")
+    check_input(password, email, confirm, role)
 
     # Forbid admins from creating owner account
     if Role(role) == Role.OWNER and user.role == Role.ADMIN.name:

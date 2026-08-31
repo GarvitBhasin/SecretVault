@@ -22,5 +22,10 @@ def get_secret(id: int, user: Users, session: Session):
     add_log(session, user.id, Action.READ, Asset.SECRET, id)
 
     return (
-        f"Name: {secret.name}\nValue: {decrypt(secret.value)}\nDescription: {secret.description}\nCreator: {username if username else 'Deleted user'}\nCreated At: {secret.created_at}\nLast Updated: {secret.updated_at}",
+        f"Name: {secret.name}\n"
+        f"Value: {decrypt(secret.value)}\n"
+        f"Description: {secret.description}\n"
+        f"Creator: {username if username else 'Deleted user'}\n"
+        f"Created At: {secret.created_at}\n"
+        f"Last Updated: {secret.updated_at}"
     )

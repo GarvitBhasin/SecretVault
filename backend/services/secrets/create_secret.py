@@ -23,7 +23,7 @@ def create_secret(
         value=encrypt(value),
         description=description,
         project_id=id,
-        creator_id=user_id,
+        creator_id=user.id,
         created_at=current_time,
         updated_at=current_time,
     )

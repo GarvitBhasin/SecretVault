@@ -1,4 +1,3 @@
-import os
 import re
 from datetime import timedelta
 
@@ -10,48 +9,46 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.database import Role, Users
-from backend.helpers import now, raise_error
+from backend.helpers import get_env_var, now, raise_error
 
 load_dotenv()
 
-secret_key = os.getenv("SECRET_KEY")
-encryption_key = os.getenv("ENCRYPTION_KEY")
-
-if secret_key is None:
-    raise RuntimeError(500, "An error occured. Please try again.")
-
-if encryption_key is None:
-    raise RuntimeError(500, "An error occured. Please try again.")
+secret_key = get_env_var("SECRET_KEY")
+encryption_key = get_env_var("ENCRYPTION_KEY")
 
 password_hash = PasswordHash.recommended()
 fernet = Fernet(encryption_key)
 
 
-def email_valid(email: str) -> bool:
-    return bool(re.match(r"^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$", email))
+def check_input(password, email=None, confirm=None, role=None):
+    # Email validity
+    if email is not None:
+        if bool(re.match(r"^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$", email)):
+            raise_error(422, "Invalid email")
 
+    if confirm is not None:
+        if password != confirm:
+            raise_error(400, "Password pairs do not match.")
 
-def password_strong(password: str) -> bool:
+    # Password strength
     has_char = any(char.isalpha() for char in password)
     has_digit = any(char.isdigit() for char in password)
     has_symbol = any(not char.isalnum() for char in password)
     is_long = len(password) > 8
 
-    return has_char and has_digit and has_symbol and is_long
-
-
-def check_credentials(email: str, password: str, confirm: str) -> None:
-    if not email_valid(email):
-        raise_error(400, "Invalid email.")
-
-    if confirm != password:
-        raise_error(400, "Passwords do not match.")
-
-    if not password_strong(password):
+    if not (has_char and has_digit and has_symbol and is_long):
         raise_error(
             422,
-            "Password must have at least one character, digit, symbol and must be more than 8 characters long.",
+            """Password must have at least one character, digit,
+            symbol and must be more than 8 characters long.""",
         )
+
+    # Role validity
+    if role is not None:
+        try:
+            Role(role)
+        except ValueError:
+            raise_error(422, "Invalid role.")
 
 
 def hash_password(password: str) -> str:
@@ -71,11 +68,7 @@ def encode_token(data: dict) -> str:
     data.update({"exp": expiry.timestamp()})
 
     # encode and return token
-    token = jwt.encode(
-        data,
-        secret_key,
-        algorithm="HS256",
-    )
+    token = jwt.encode(data, secret_key, algorithm="HS256")
 
     return token
 
@@ -92,7 +85,7 @@ def verify_user(token: str, session: Session) -> Users:
 
     # Check if user exists in db and return user if found
     user = session.execute(
-        select(Users.id).where(Users.id == user_id)
+        select(Users).where(Users.id == user_id)
     ).scalar_one_or_none()
 
     if user is None:
