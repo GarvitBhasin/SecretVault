@@ -1,21 +1,17 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from backend.database import Secrets, Action, Asset
-from backend.helpers import now, raise_error, update_project_timestamp, add_log
+
+from backend.database import Action, Asset, Secrets
+from backend.helpers import add_log, now, raise_error, update_project_timestamp
 from backend.security import encrypt
 
+
 def edit_secret(
-    id: int,
-    name: str,
-    value: str,
-    description: str,
-    user_id,
-    session: Session
+    id: int, name: str, value: str, description: str, user_id, session: Session
 ):
-    # Find secret 
+    # Find secret
     secret = session.execute(
-        select(Secrets)
-        .where(Secrets.id == id)
+        select(Secrets).where(Secrets.id == id)
     ).scalar_one_or_none()
 
     if secret is None:

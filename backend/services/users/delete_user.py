@@ -1,18 +1,13 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from backend.database import Users, Role, Action, Asset
-from backend.helpers import raise_error, add_log
 
-def delete_user(
-    id: int,
-    user_id: int,
-    session: Session
-):
+from backend.database import Action, Asset, Role, Users
+from backend.helpers import add_log, raise_error
+
+
+def delete_user(id: int, user_id: int, session: Session):
     # Retrieve user to be deleted
-    user = session.execute(
-        select(Users)
-        .where(Users.id == id)
-    ).scalar_one_or_none()
+    user = session.execute(select(Users).where(Users.id == id)).scalar_one_or_none()
 
     # Perform security checks
     if user is None:

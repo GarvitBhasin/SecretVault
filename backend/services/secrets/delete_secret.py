@@ -1,17 +1,14 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from backend.database import Secrets, Action, Asset
-from backend.helpers import find_project, raise_error, update_project_timestamp, add_log
 
-def delete_secret(
-    id: int,
-    user_id,
-    session: Session
-):
+from backend.database import Action, Asset, Secrets
+from backend.helpers import add_log, raise_error, update_project_timestamp
+
+
+def delete_secret(id: int, user_id, session: Session):
     # Find secret
     secret = session.execute(
-        select(Secrets)
-        .where(Secrets.id == id)
+        select(Secrets).where(Secrets.id == id)
     ).scalar_one_or_none()
 
     if secret is None:

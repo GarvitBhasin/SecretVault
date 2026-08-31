@@ -1,23 +1,18 @@
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
-from backend.database import Users, Role, Action, Asset
-from backend.helpers import raise_error, add_log
 
-def edit_user(
-    id: int,
-    role: int,
-    self_role: Role,
-    user_id: int,
-    session: Session
-):
+from backend.database import Action, Asset, Role, Users
+from backend.helpers import add_log, raise_error
+
+
+def edit_user(id: int, role: int, self_role: Role, user_id: int, session: Session):
     # Validate role
     if role not in range(1, 4):
-        raise_error(400, "Invalid role.")    
+        raise_error(400, "Invalid role.")
 
     # Retrieve role to be edited
     editing_role = session.execute(
-        select(Users.role)
-        .where(Users.id == id)
+        select(Users.role).where(Users.id == id)
     ).scalar_one_or_none()
 
     # Check if user not found
@@ -37,10 +32,6 @@ def edit_user(
         raise_error(403, "Admins cannot assign owner role.")
 
     # Edit
-    session.execute(
-        update(Users)
-        .where(Users.id == id)
-        .values(role=Role(role).name)
-    )
+    session.execute(update(Users).where(Users.id == id).values(role=Role(role).name))
 
     add_log(session, user_id, Action.UPDATE, Asset.ACCOUNT, id)

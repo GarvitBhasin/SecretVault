@@ -1,20 +1,16 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from backend.database import Projects, Secrets, Action, Asset
-from backend.helpers import raise_error, now, update_project_timestamp, add_log
+
+from backend.database import Action, Asset, Projects, Secrets
+from backend.helpers import add_log, now, raise_error, update_project_timestamp
 from backend.security import encrypt
 
+
 def create_secret(
-    id: int,
-    name: str,
-    description: str,
-    value: str,
-    user_id: int,
-    session: Session
+    id: int, name: str, description: str, value: str, user_id: int, session: Session
 ):
     project = session.execute(
-        select(Projects)
-        .where(Projects.id == id)
+        select(Projects).where(Projects.id == id)
     ).scalar_one_or_none()
 
     if project is None:
@@ -23,13 +19,13 @@ def create_secret(
     # Create secret object and add to db
     current_time = now()
     secret = Secrets(
-        name = name,
-        value = encrypt(value),
-        description = description,
-        project_id = id,
-        creator_id = user_id,
-        created_at = current_time,
-        updated_at = current_time
+        name=name,
+        value=encrypt(value),
+        description=description,
+        project_id=id,
+        creator_id=user_id,
+        created_at=current_time,
+        updated_at=current_time,
     )
 
     session.add(secret)

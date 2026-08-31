@@ -1,13 +1,16 @@
-from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy import create_engine
-from fastapi import Request, Depends
-from backend.helpers import raise_error
-from backend.security import verify_user, validate_user
 import os
+
+from fastapi import Depends, Request
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
+
+from backend.helpers import raise_error
+from backend.security import validate_user, verify_user
 
 database_url = os.getenv("DB_URL")
 engine = create_engine(database_url)
 SessionLocal = sessionmaker(bind=engine)
+
 
 # Attempt db connection
 # Yield db and catch any exceptions
@@ -17,13 +20,14 @@ def get_db():
         db = SessionLocal()
 
         yield db
-    
+
     except Exception:
         db.rollback()
         raise
 
     finally:
         db.close()
+
 
 # Extract token from auth header
 # Raise appropriate error if auth header invalid/missing
@@ -42,6 +46,7 @@ def get_user_id(request: Request, session: Session = Depends(get_db)):
 
     return verify_user(auth.removeprefix("Bearer "), session)
 
+
 # Use existing dependencies to:
 #   - Connect to db
 #   - Extract user_id and perform other security checks mentioned above
@@ -50,10 +55,9 @@ def get_user_id(request: Request, session: Session = Depends(get_db)):
 # Return user's role/appropriate error
 def require_role(minimum_access_role: str):
     def checkrole(
-        session: Session = Depends(get_db),
-        user_id: int = Depends(get_user_id)
+        session: Session = Depends(get_db), user_id: int = Depends(get_user_id)
     ):
         role = validate_user(session, user_id, minimum_access_role)
         return role
-    
+
     return checkrole

@@ -1,17 +1,13 @@
-from sqlalchemy.orm import Session
 from sqlalchemy import select
+from sqlalchemy.orm import Session
+
 from backend.database import Projects, Secrets, Users
 from backend.helpers import raise_error
 
-def list_secrets(
-    id: int,
-    session: Session
-):
+
+def list_secrets(id: int, session: Session):
     # Check if project exists
-    project_found = session.execute(
-        select(Projects)
-        .where(Projects.id == id)
-    ).first()
+    project_found = session.execute(select(Projects).where(Projects.id == id)).first()
 
     if not project_found:
         raise_error(404, "Project not found.")
@@ -31,13 +27,14 @@ def list_secrets(
 
     # Create array of secret dicts (used to display table on cli)
     for secret, username in secrets:
-
-        secrets_list.append({
-            "id": str(secret.id),
-            "name": secret.name,
-            "creator": username if username else "Deleted user",
-            "created_at": str(secret.created_at),
-            "updated_at": str(secret.updated_at),
-        })
+        secrets_list.append(
+            {
+                "id": str(secret.id),
+                "name": secret.name,
+                "creator": username if username else "Deleted user",
+                "created_at": str(secret.created_at),
+                "updated_at": str(secret.updated_at),
+            }
+        )
 
     return secrets_list

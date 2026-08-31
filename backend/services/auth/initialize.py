@@ -1,20 +1,16 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from backend.database import Users, Role, Action, Asset
+
+from backend.database import Action, Asset, Role, Users
+from backend.helpers import add_log, raise_error
 from backend.security import check_credentials, hash_password
-from backend.helpers import raise_error, add_log
+
 
 def initialize_vault(
-    username: str,
-    email: str,
-    password: str,
-    confirm: str,
-    session: Session
+    username: str, email: str, password: str, confirm: str, session: Session
 ):
     # Check if users exist
-    users_exist = session.execute(
-        select(Users)
-    ).first()
+    users_exist = session.execute(select(Users)).first()
 
     if users_exist:
         raise_error(403, "SecretVault has already been initialized.")
@@ -27,10 +23,10 @@ def initialize_vault(
 
     # Add first user to db and create log
     user = Users(
-        username = username,
-        email = email,
-        password_hash = hashed_pass,
-        role = Role.OWNER.name # First user is made owner 
+        username=username,
+        email=email,
+        password_hash=hashed_pass,
+        role=Role.OWNER.name,  # First user is made owner
     )
 
     session.add(user)

@@ -1,18 +1,15 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from backend.database import Users
-from backend.security import verify_password, encode_token
-from backend.helpers import raise_error, add_log
 
-def login_user(
-    email: str,
-    password: str,
-    session: Session
-):
+from backend.database import Users
+from backend.helpers import raise_error
+from backend.security import encode_token, verify_password
+
+
+def login_user(email: str, password: str, session: Session):
     # Find user in db
     result = session.execute(
-        select(Users.id, Users.password_hash)
-        .where(Users.email == email)
+        select(Users.id, Users.password_hash).where(Users.email == email)
     ).first()
 
     if result is None:

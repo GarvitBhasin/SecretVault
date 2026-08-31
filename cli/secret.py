@@ -1,7 +1,16 @@
 import typer
-from cli.helpers import *
+
+from cli.helpers.api import create_header, send_request
+from cli.helpers.output import (
+    confirm_action,
+    console,
+    display_message,
+    display_secrets_table,
+)
+from cli.helpers.session import get_session
 
 secrets_app = typer.Typer()
+
 
 @secrets_app.command()
 def create(
@@ -9,42 +18,43 @@ def create(
     name: str = typer.Option(..., prompt="Enter secret name"),
     value: str = typer.Option(..., prompt="Enter secret"),
 ):
-    description: str = typer.prompt("Enter secret description (optional)", default="", show_default=False)
-    
+    description: str = typer.prompt(
+        "Enter secret description (optional)", default="", show_default=False
+    )
+
     token = get_session()
 
     if token is not None:
         response = send_request(
-            "post", 
-            f"/projects/{id}/secrets", 
+            "post",
+            f"/projects/{id}/secrets",
             create_header(token),
             {
                 "name": name,
                 "value": value,
-                "description": description if description else None
-            }
+                "description": description if description else None,
+            },
         )
 
         display_message(response)
 
+
 @secrets_app.command()
-def delete(
-    id: int = typer.Option(..., prompt="Enter secret ID")
-):
+def delete(id: int = typer.Option(..., prompt="Enter secret ID")):
     confirm = confirm_action()
 
     if confirm:
-    
         token = get_session()
 
         if token is not None:
             response = send_request(
-                "delete", 
+                "delete",
                 f"/secrets/{id}",
-                create_header(token), 
+                create_header(token),
             )
 
             display_message(response)
+
 
 @secrets_app.command()
 def edit(
@@ -52,7 +62,9 @@ def edit(
 ):
     name: str = typer.prompt("Enter new secret name", default="", show_default=False)
     value: str = typer.prompt("Enter new secret value", default="", show_default=False)
-    description: str = typer.prompt("Enter new description", default="", show_default=False)
+    description: str = typer.prompt(
+        "Enter new description", default="", show_default=False
+    )
 
     if name == "" or value == "":
         console.print("[red]Error[/red]: Name/value field(s) cannot be empty.")
@@ -61,34 +73,32 @@ def edit(
     confirm = confirm_action()
 
     if confirm:
-    
         token = get_session()
-        
+
         if token is not None:
             response = send_request(
-                "patch", 
-                f"/secret/{id}", 
+                "patch",
+                f"/secret/{id}",
                 create_header(token),
                 {
                     "name": name,
                     "value": value,
                     "description": description,
-                }
+                },
             )
 
             display_message(response)
 
+
 @secrets_app.command()
-def list(
-    id: int = typer.Option(..., prompt="Enter project ID")
-):
+def list(id: int = typer.Option(..., prompt="Enter project ID")):
     token = get_session()
 
     if token is not None:
         response = send_request(
-            "get", 
+            "get",
             f"/projects/{id}/secrets",
-            create_header(token), 
+            create_header(token),
         )
 
         if response.ok:
@@ -96,21 +106,19 @@ def list(
 
         display_message(response)
 
+
 @secrets_app.command()
-def get(
-    id: int = typer.Option(..., prompt="Enter secret ID")
-):
+def get(id: int = typer.Option(..., prompt="Enter secret ID")):
     confirm = confirm_action()
 
     if confirm:
-
         token = get_session()
 
         if token is not None:
             response = send_request(
-                "get", 
+                "get",
                 f"/secret/{id}",
-                create_header(token), 
+                create_header(token),
             )
 
         if response.ok:

@@ -1,5 +1,7 @@
-import pytest 
+import pytest
+
 from backend.database import SessionLocal, Users
+
 
 @pytest.fixture()
 def db_session():
@@ -10,6 +12,7 @@ def db_session():
 
     finally:
         session.close()
+
 
 @pytest.fixture()
 def viewer(db_session):
@@ -26,6 +29,7 @@ def viewer(db_session):
 
     return user
 
+
 @pytest.fixture()
 def admin(db_session):
     user = Users(
@@ -40,6 +44,7 @@ def admin(db_session):
     db_session.refresh(user)
 
     return user
+
 
 @pytest.fixture()
 def owner(db_session):

@@ -1,35 +1,37 @@
-from fastapi import FastAPI, Depends
+from fastapi import Depends, FastAPI
+from sqlalchemy.orm import Session
 
-from backend.database import *
-from backend.helpers import *
-from backend.requests import *
+from backend.database import Role
 from backend.dependencies import get_db, get_user_id, require_role
-
+from backend.requests import (
+    AddUserRequest,
+    DeleteSelfRequest,
+    EditUserRequest,
+    InitRequest,
+    LoginRequest,
+    NameRequest,
+    ResetPasswordRequest,
+    SecretInfoRequest,
+)
+from backend.services.auth.delete_self import delete_self
 from backend.services.auth.initialize import initialize_vault
 from backend.services.auth.login import login_user
-from backend.services.auth.delete_self import delete_self
+from backend.services.auth.me import my_details
 from backend.services.auth.reset_password import reset_password
-
-from backend.services.users.create_user import create_user
-from backend.services.users.delete_user import delete_user
-from backend.services.users.edit_user import edit_user
-from backend.services.users.list_users import list_users
-
+from backend.services.logs.list_logs import list_logs
 from backend.services.projects.create_project import create_project
 from backend.services.projects.delete_project import delete_project
 from backend.services.projects.edit_project import edit_project
 from backend.services.projects.list_projects import list_projects
-
 from backend.services.secrets.create_secret import create_secret
 from backend.services.secrets.delete_secret import delete_secret
 from backend.services.secrets.edit_secret import edit_secret
-from backend.services.secrets.list_secrets import list_secrets
 from backend.services.secrets.get_secret import get_secret
-
-from backend.services.logs.list_logs import list_logs
-
-from sqlalchemy import select, delete, update, func
-from sqlalchemy.orm import Session
+from backend.services.secrets.list_secrets import list_secrets
+from backend.services.users.create_user import create_user
+from backend.services.users.delete_user import delete_user
+from backend.services.users.edit_user import edit_user
+from backend.services.users.list_users import list_users
 
 app = FastAPI()
 
@@ -80,19 +82,14 @@ def me(
     session: Session = Depends(get_db),
     user_id: int = Depends(get_user_id)
 ):
-
-    # Find user in db
-    username, email, role = session.execute(
-        select(Users.username, Users.email, Users.role)
-        .where(Users.id == user_id)
-    ).first()
+    message = my_details(user_id, session)
 
     return {
-        "message": f"Loaded user details.\nUsername: {username}\nEmail: {email}\nRole: {role.lower()}",
+        "message": message
     }
 
 @app.delete("/delete-self")
-def delete(
+def delete_self_account(
     data: DeleteSelfRequest, 
     session: Session = Depends(get_db), 
     user_id: int = Depends(get_user_id)
