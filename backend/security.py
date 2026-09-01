@@ -7,8 +7,9 @@ from pwdlib import PasswordHash
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from backend.config import get_env_var
 from backend.database import Role, Users
-from backend.helpers import get_env_var, now, raise_error
+from backend.helpers import now, raise_error
 
 load_dotenv()
 

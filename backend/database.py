@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from sqlalchemy import DateTime, ForeignKey, String, Text, create_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
-from backend.helpers import get_env_var
+from backend.config import get_env_var
 
 load_dotenv()
 
