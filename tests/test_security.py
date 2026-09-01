@@ -21,7 +21,6 @@ from backend.security import (
 # Password hashing
 
 
-
 def test_password_is_hashed():
     password = "Password@123"
 
