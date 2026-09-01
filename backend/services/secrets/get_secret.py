@@ -6,7 +6,7 @@ from backend.helpers import add_log, raise_error
 from backend.security import decrypt
 
 
-def get_secret(id: int, user: Users, session: Session):
+def get_secret(id: int, user: Users, session: Session) -> str:
     # Find secret
     result = session.execute(
         select(Secrets, Users.username)

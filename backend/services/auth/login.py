@@ -6,7 +6,7 @@ from backend.helpers import raise_error
 from backend.security import encode_token, verify_password
 
 
-def login_user(email: str, password: str, session: Session):
+def login_user(email: str, password: str, session: Session) -> str:
     # Find user in db
     result = session.execute(
         select(Users.id, Users.password_hash).where(Users.email == email)

@@ -5,7 +5,7 @@ from backend.database import Action, Asset, Projects, Users
 from backend.helpers import add_log, raise_error
 
 
-def delete_project(id: int, user: Users, session: Session):
+def delete_project(id: int, user: Users, session: Session) -> None:
     # Delete project and add log
     project = session.execute(
         select(Projects).where(Projects.id == id)

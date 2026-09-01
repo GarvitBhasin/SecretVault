@@ -8,7 +8,7 @@ from backend.security import encrypt
 
 def create_secret(
     id: int, name: str, description: str, value: str, user: Users, session: Session
-):
+) -> None:
     project = session.execute(
         select(Projects).where(Projects.id == id)
     ).scalar_one_or_none()

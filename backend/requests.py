@@ -1,16 +1,16 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 
 class InitRequest(BaseModel):
     username: str
-    email: str
+    email: EmailStr
     password: str
     confirm: str
 
 
 class AddUserRequest(BaseModel):
     username: str
-    email: str
+    email: EmailStr
     password: str
     confirm: str
     role: int
@@ -22,7 +22,7 @@ class ResetPasswordRequest(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    email: str
+    email: EmailStr
     password: str
 
 

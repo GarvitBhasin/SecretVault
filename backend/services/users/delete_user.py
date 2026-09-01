@@ -5,7 +5,7 @@ from backend.database import Action, Asset, Role, Users
 from backend.helpers import add_log, raise_error
 
 
-def delete_user(id: int, user: Users, session: Session):
+def delete_user(id: int, user: Users, session: Session) -> None:
     # Retrieve user to be deleted
     deleting_user = session.execute(
         select(Users).where(Users.id == id)

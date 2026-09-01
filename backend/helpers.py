@@ -22,11 +22,11 @@ def get_env_var(name: str) -> str:
     return value
 
 
-def now():
+def now() -> datetime:
     return datetime.now(timezone.utc).replace(microsecond=0)
 
 
-def update_project_timestamp(session: Session, project_id: int):
+def update_project_timestamp(session: Session, project_id: int) -> None:
     session.execute(
         update(Projects).where(Projects.id == project_id).values(updated_at=now())
     )
@@ -34,7 +34,7 @@ def update_project_timestamp(session: Session, project_id: int):
 
 def add_log(
     session: Session, user_id: int, action: Action, asset_type: Asset, asset_id: int
-):
+) -> None:
     current_time = now()
 
     log = Logs(

@@ -5,7 +5,7 @@ from backend.database import Action, Asset, Projects, Users
 from backend.helpers import add_log, now, raise_error
 
 
-def edit_project(name: str, id: int, user: Users, session: Session):
+def edit_project(name: str, id: int, user: Users, session: Session) -> None:
     # Edit project and add log
     project = session.execute(
         select(Projects).where(Projects.id == id)

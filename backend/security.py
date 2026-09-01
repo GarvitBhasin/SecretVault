@@ -20,12 +20,12 @@ password_hash = PasswordHash.recommended()
 fernet = Fernet(encryption_key)
 
 
-def check_input(password, email=None, confirm=None, role=None):
-    # Email validity
-    if email is not None:
-        if bool(re.match(r"^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$", email)):
-            raise_error(422, "Invalid email")
-
+def check_input(
+    password: str,
+    confirm: str | None = None,
+    role: int | None = None,
+):
+    # Password Pairs
     if confirm is not None:
         if password != confirm:
             raise_error(400, "Password pairs do not match.")
@@ -94,7 +94,7 @@ def verify_user(token: str, session: Session) -> Users:
     return user
 
 
-def validate_user(session: Session, user: Users, minimum_access_level: Role) -> None:
+def validate_user(user: Users, minimum_access_level: Role) -> None:
 
     # Check if role's access level is lower than allowed
     if Role[user.role].value < minimum_access_level.value:

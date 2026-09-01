@@ -14,7 +14,7 @@ def create_user(
     role: int,
     user: Users,
     session: Session,
-):
+) -> None:
 
     # Check if username/email are alredy in use
     email_exists = session.scalar(select(Users).where(Users.email == email))
@@ -26,8 +26,8 @@ def create_user(
     if username_exists:
         raise_error(409, "Username is already taken.")
 
-    # Check email validity, password pairs, role validity and password strenght
-    check_input(password, email, confirm, role)
+    # Check password pairs, role validity and password strength
+    check_input(password, confirm, role)
 
     # Forbid admins from creating owner account
     if Role(role) == Role.OWNER and user.role == Role.ADMIN.name:

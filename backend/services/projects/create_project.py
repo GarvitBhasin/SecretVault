@@ -4,7 +4,7 @@ from backend.database import Action, Asset, Projects, Users
 from backend.helpers import add_log, now
 
 
-def create_project(name: str, user: Users, session: Session):
+def create_project(name: str, user: Users, session: Session) -> None:
     # Create project object and add to db
     current_time = now()
     project = Projects(

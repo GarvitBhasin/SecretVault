@@ -6,7 +6,7 @@ from backend.helpers import add_log, raise_error
 from backend.security import verify_password
 
 
-def delete_self(password: str, user: Users, session: Session):
+def delete_self(password: str, user: Users, session: Session) -> None:
 
     # Check password
     verify_password(password, user.password_hash)

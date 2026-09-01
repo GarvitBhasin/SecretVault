@@ -8,15 +8,15 @@ from backend.security import check_input, hash_password
 
 def initialize_vault(
     username: str, email: str, password: str, confirm: str, session: Session
-):
+) -> None:
     # Check if users exist
     users_exist = session.execute(select(Users)).first()
 
     if users_exist:
         raise_error(403, "SecretVault has already been initialized.")
 
-    # Check email validity, password pairs, and password strength
-    check_input(password, email, confirm)
+    # Check password pairs and password strength
+    check_input(password, confirm)
 
     # Hash password
     hashed_pass = hash_password(password)

@@ -5,7 +5,7 @@ from backend.database import Projects, Secrets, Users
 from backend.helpers import raise_error
 
 
-def list_projects(session: Session):
+def list_projects(session: Session) -> list[dict[str, str]]:
     # Join project id, project name, and project creator's username
     projects = session.execute(
         select(Projects, Users.username)

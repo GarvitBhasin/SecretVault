@@ -5,7 +5,7 @@ from backend.helpers import add_log, raise_error
 from backend.security import check_input, hash_password
 
 
-def reset_password(password: str, confirm: str, user: Users, session: Session):
+def reset_password(password: str, confirm: str, user: Users, session: Session) -> None:
     # Check credentials
     if password != confirm:
         raise_error(400, "Passwords do not match.")

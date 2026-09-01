@@ -5,7 +5,7 @@ from backend.database import Projects, Secrets, Users
 from backend.helpers import raise_error
 
 
-def list_secrets(id: int, session: Session):
+def list_secrets(id: int, session: Session) -> list[dict[str, str]]:
     # Check if project exists
     project_found = session.execute(select(Projects).where(Projects.id == id)).first()
 

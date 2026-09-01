@@ -5,7 +5,7 @@ from backend.database import Action, Asset, Role, Users
 from backend.helpers import add_log, raise_error
 
 
-def edit_user(id: int, role: int, user: Users, session: Session):
+def edit_user(id: int, role: int, user: Users, session: Session) -> None:
     # Validate role
     if role not in range(1, 4):
         raise_error(400, "Invalid role.")

@@ -29,7 +29,7 @@ def get_db():
 # Raise appropriate error for expired/invalid/tampered token or malformed sub
 # Check if user exists
 # Return user object
-def get_user(request: Request, session: Session = Depends(get_db)):
+def get_user(request: Request, session: Session = Depends(get_db)) -> Users:
     auth = request.headers.get("Authorization")
 
     if not auth:
@@ -48,5 +48,5 @@ def get_user(request: Request, session: Session = Depends(get_db)):
 # Compare role's acces level (using Role enum) to minimum access level provided
 # Return user's role/appropriate error
 def require_role(minimum_access_role: Role):
-    def checkrole(session: Session = Depends(get_db), user: Users = Depends(get_user)):
-        validate_user(session, user, minimum_access_role)
+    def checkrole(user: Users = Depends(get_user)) -> None:
+        validate_user(user, minimum_access_role)

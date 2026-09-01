@@ -5,7 +5,7 @@ from backend.database import Users
 from backend.helpers import raise_error
 
 
-def list_users(session: Session):
+def list_users(session: Session) -> list[dict[str, str]]:
     users = session.execute(select(Users)).scalars().all()
 
     if not users:

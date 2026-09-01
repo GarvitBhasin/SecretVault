@@ -1,4 +1,5 @@
 import typer
+from requests import Response
 from rich.console import Console
 from rich.table import Table, box
 
@@ -13,14 +14,14 @@ logs_table = Table(title="Logs", header_style="bold", expand=True, box=box.ROUND
 users_table = Table(title="Users", header_style="bold", expand=True, box=box.ROUNDED)
 
 
-def display_message(response):
+def display_message(response: Response) -> None:
     if response.ok:
         console.print(f"[green]Success[/green]: {response.json()['message']}")
     else:
         console.print(f"[red]Error[/red]: {response.json()['detail']}")
 
 
-def display_projects_table(projects):
+def display_projects_table(projects: list[dict[str, str]]) -> None:
     projects_table.add_column("ID")
     projects_table.add_column("Name")
     projects_table.add_column("Creator")
@@ -41,7 +42,7 @@ def display_projects_table(projects):
     console.print(projects_table)
 
 
-def display_secrets_table(secrets):
+def display_secrets_table(secrets: list[dict[str, str]]) -> None:
     secrets_table.add_column("ID")
     secrets_table.add_column("Name")
     secrets_table.add_column("Creator")
@@ -60,7 +61,7 @@ def display_secrets_table(secrets):
     console.print(secrets_table)
 
 
-def display_logs_table(logs):
+def display_logs_table(logs: list[dict[str, str]]) -> None:
     logs_table.add_column("ID")
     logs_table.add_column("Actor")
     logs_table.add_column("Action")
@@ -81,7 +82,7 @@ def display_logs_table(logs):
     console.print(logs_table)
 
 
-def display_users_table(users):
+def display_users_table(users: list[dict[str, str]]) -> None:
     users_table.add_column("ID")
     users_table.add_column("Email")
     users_table.add_column("Username")
@@ -98,5 +99,5 @@ def display_users_table(users):
     console.print(users_table)
 
 
-def confirm_action():
+def confirm_action() -> bool:
     return typer.confirm("Are you sure you want to execute this action?")

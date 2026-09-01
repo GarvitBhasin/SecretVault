@@ -5,7 +5,7 @@ from backend.database import Action, Asset, Secrets, Users
 from backend.helpers import add_log, raise_error, update_project_timestamp
 
 
-def delete_secret(id: int, user: Users, session: Session):
+def delete_secret(id: int, user: Users, session: Session) -> None:
     # Find secret
     secret = session.execute(
         select(Secrets).where(Secrets.id == id)

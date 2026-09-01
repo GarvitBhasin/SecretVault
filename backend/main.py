@@ -36,19 +36,11 @@ app = FastAPI()
 
 # INIT
 
-@app.post("/init", status_code=201)
-def init(
-    data: InitRequest, 
-    session: Session = Depends(get_db)
-):
 
-    initialize_vault(
-        data.username, 
-        data.email, 
-        data.password, 
-        data.confirm, 
-        session
-    )
+@app.post("/init", status_code=201)
+def init(data: InitRequest, session: Session = Depends(get_db)):
+
+    initialize_vault(data.username, data.email, data.password, data.confirm, session)
 
     session.commit()
 
@@ -56,30 +48,20 @@ def init(
         "message": "Owner account created. You can now log in with your credentials."
     }
 
+
 # AUTH
 
-@app.post("/login")
-def login(
-    data: LoginRequest, 
-    session: Session = Depends(get_db)
-):
 
-    token = login_user(
-        data.email, 
-        data.password, 
-        session
-    )
-    
-    return {
-        "token": token,
-        "token_type": "bearer",
-        "message": "Logged in."
-    }
+@app.post("/login")
+def login(data: LoginRequest, session: Session = Depends(get_db)):
+
+    token = login_user(data.email, data.password, session)
+
+    return {"token": token, "token_type": "bearer", "message": "Logged in."}
+
 
 @app.get("/me")
-def me(
-    user: Users = Depends(get_user)
-):
+def me(user: Users = Depends(get_user)):
     return (
         f"Loaded user details.\n"
         f"Username: {user.username}\n"
@@ -87,90 +69,69 @@ def me(
         f"Role: {user.role.lower()}"
     )
 
+
 @app.delete("/delete-self")
 def delete_self_account(
-    data: DeleteSelfRequest, 
-    session: Session = Depends(get_db), 
-    user: Users = Depends(get_user)
+    data: DeleteSelfRequest,
+    session: Session = Depends(get_db),
+    user: Users = Depends(get_user),
 ):
 
-    delete_self(
-        data.password, 
-        user, 
-        session
-    )
+    delete_self(data.password, user, session)
 
     session.commit()
 
-    return {
-        "message": "Deleted account."
-    }
+    return {"message": "Deleted account."}
+
 
 @app.patch("/reset-password")
 def reset_pass(
-    data: ResetPasswordRequest, 
+    data: ResetPasswordRequest,
     session: Session = Depends(get_db),
-    user: Users = Depends(get_user)
+    user: Users = Depends(get_user),
 ):
 
-    reset_password(
-        data.password,
-        data.confirm, 
-        user, 
-        session
-    )
+    reset_password(data.password, data.confirm, user, session)
 
     session.commit()
 
-    return {
-        "message": "Password reset successfully."
-    }
+    return {"message": "Password reset successfully."}
+
 
 # USER
 
+
 @app.post("/user", status_code=201)
 def create_usr(
-    data: AddUserRequest, 
+    data: AddUserRequest,
     session: Session = Depends(get_db),
     user: Users = Depends(get_user),
-    _: None = Depends(require_role(Role.ADMIN))
+    _: None = Depends(require_role(Role.ADMIN)),
 ):
 
     create_user(
-        data.username, 
-        data.email, 
-        data.password, 
-        data.confirm, 
-        data.role, 
-        user,
-        session
+        data.username, data.email, data.password, data.confirm, data.role, user, session
     )
 
     session.commit()
-            
-    return {
-        "message": "Created account."
-    }
+
+    return {"message": "Created account."}
+
 
 @app.delete("/user/{deletion_id}")
 def delete_usr(
     deletion_id: int,
     session: Session = Depends(get_db),
     user: Users = Depends(get_user),
-    _: None = Depends(require_role(Role.OWNER))
+    _: None = Depends(require_role(Role.OWNER)),
 ):
 
-    delete_user(
-        deletion_id,
-        user,
-        session
-    )    
+    delete_user(deletion_id, user, session)
 
     session.commit()
 
-    return {
-        "message": "Account deleted successfully."
-    }
+    return {"message": "Account deleted successfully."}
+
 
 @app.patch("/user/{editing_id}")
 def edit_usr(
@@ -178,76 +139,56 @@ def edit_usr(
     data: EditUserRequest,
     session: Session = Depends(get_db),
     user: Users = Depends(get_user),
-    _: None = Depends(require_role(Role.OWNER))
+    _: None = Depends(require_role(Role.OWNER)),
 ):
 
-    edit_user(
-        editing_id,
-        data.role,
-        user,
-        session
-    )
+    edit_user(editing_id, data.role, user, session)
 
     session.commit()
 
-    return {
-        "message": "Updated user role."
-    }
+    return {"message": "Updated user role."}
+
 
 @app.get("/users")
-def list_usrs(
-    session: Session = Depends(get_db),
-    user: Users = Depends(get_user)
-):
+def list_usrs(session: Session = Depends(get_db), user: Users = Depends(get_user)):
 
     users = list_users(session)
 
-    return {
-        "users": users,
-        "message": "Loaded users."
-    }
+    return {"users": users, "message": "Loaded users."}
+
 
 # PROJECTS
+
 
 @app.post("/projects", status_code=201)
 def create_proj(
     data: NameRequest,
     session: Session = Depends(get_db),
     user: Users = Depends(get_user),
-    _: None = Depends(require_role(Role.ADMIN))
+    _: None = Depends(require_role(Role.ADMIN)),
 ):
 
-    create_project(
-        data.name,
-        user,
-        session
-    )
+    create_project(data.name, user, session)
 
     session.commit()
 
-    return {
-        "message": "Created project."
-    }
+    return {"message": "Created project."}
+
 
 @app.delete("/projects/{project_id}")
 def delete_proj(
     project_id: int,
     session: Session = Depends(get_db),
     user: Users = Depends(get_user),
-    _: None = Depends(require_role(Role.OWNER))
+    _: None = Depends(require_role(Role.OWNER)),
 ):
 
-    delete_project(
-        project_id,
-        user,
-        session
-    )
+    delete_project(project_id, user, session)
 
     session.commit()
-    
-    return {
-        "message": "Deleted project."
-    }
+
+    return {"message": "Deleted project."}
+
 
 @app.patch("/projects/{project_id}")
 def edit_proj(
@@ -255,37 +196,26 @@ def edit_proj(
     data: NameRequest,
     session: Session = Depends(get_db),
     user: Users = Depends(get_user),
-    _: None = Depends(require_role(Role.ADMIN))
+    _: None = Depends(require_role(Role.ADMIN)),
 ):
 
-    edit_project(
-        data.name,
-        project_id,
-        user,
-        session
-    )
+    edit_project(data.name, project_id, user, session)
 
     session.commit()
 
-    return {
-        "message": "Edited project."
-    }
+    return {"message": "Edited project."}
 
 
 @app.get("/projects")
-def list_proj(
-    session: Session = Depends(get_db),
-    user: Users = Depends(get_user)
-):
+def list_proj(session: Session = Depends(get_db), user: Users = Depends(get_user)):
 
     projects = list_projects(session)
 
-    return {
-        "projects": projects,
-        "message": "Loaded projects."
-    }
+    return {"projects": projects, "message": "Loaded projects."}
+
 
 # SECRETS
+
 
 @app.post("/projects/{project_id}/secrets", status_code=201)
 def create_sec(
@@ -293,43 +223,30 @@ def create_sec(
     data: SecretInfoRequest,
     session: Session = Depends(get_db),
     user: Users = Depends(get_user),
-    _: None = Depends(require_role(Role.ADMIN))
+    _: None = Depends(require_role(Role.ADMIN)),
 ):
 
-    create_secret(
-        project_id,
-        data.name,
-        data.description,
-        data.value,
-        user,
-        session
-    )
+    create_secret(project_id, data.name, data.description, data.value, user, session)
 
     session.commit()
 
-    return {
-        "message": "Created secret."
-    }
+    return {"message": "Created secret."}
+
 
 @app.delete("/secrets/{secret_id}")
 def delete_sec(
     secret_id: int,
     session: Session = Depends(get_db),
     user: Users = Depends(get_user),
-    _: None = Depends(require_role(Role.OWNER))
+    _: None = Depends(require_role(Role.OWNER)),
 ):
 
-    delete_secret(
-        secret_id,
-        user,
-        session
-    )
+    delete_secret(secret_id, user, session)
 
     session.commit()
 
-    return {
-        "message": "Deleted secret."
-    }
+    return {"message": "Deleted secret."}
+
 
 @app.patch("/secrets/{secret_id}")
 def edit_sec(
@@ -337,69 +254,44 @@ def edit_sec(
     data: SecretInfoRequest,
     session: Session = Depends(get_db),
     user: Users = Depends(get_user),
-    _: None = Depends(require_role(Role.ADMIN))
+    _: None = Depends(require_role(Role.ADMIN)),
 ):
 
-    edit_secret(
-        secret_id,
-        data.name,
-        data.value,
-        data.description,
-        user,
-        session
-    )
+    edit_secret(secret_id, data.name, data.value, data.description, user, session)
 
     session.commit()
 
-    return {
-        "message": "Edited secret."
-    }
+    return {"message": "Edited secret."}
+
 
 @app.get("/projects/{project_id}/secrets")
 def list_sec(
-    project_id: int,
-    session: Session = Depends(get_db),
-    user: Users = Depends(get_user)
+    project_id: int, session: Session = Depends(get_db), user: Users = Depends(get_user)
 ):
 
     secrets = list_secrets(project_id, session)
 
-    return {
-        "secrets": secrets,
-        "message": "Loaded secrets."
-    }
+    return {"secrets": secrets, "message": "Loaded secrets."}
+
 
 @app.get("/secrets/{secret_id}")
 def get_sec(
-    secret_id: int,
-    session: Session = Depends(get_db),
-    user: Users = Depends(get_user)
+    secret_id: int, session: Session = Depends(get_db), user: Users = Depends(get_user)
 ):
 
-    secret = get_secret(
-        secret_id,
-        user,
-        session
-    )
+    secret = get_secret(secret_id, user, session)
 
     session.commit()
 
-    return {
-        "secret": secret,
-        "message": "Loaded secret."
-    }
+    return {"secret": secret, "message": "Loaded secret."}
+
 
 # LOGS
 
+
 @app.get("/logs")
-def logs(
-    session: Session = Depends(get_db),
-    user: Users = Depends(get_user)
-):
+def logs(session: Session = Depends(get_db), user: Users = Depends(get_user)):
 
     logs = list_logs(session)
 
-    return {
-        "logs": logs,
-        "message": "Loaded logs."
-    }
+    return {"logs": logs, "message": "Loaded logs."}

@@ -8,7 +8,7 @@ from backend.security import encrypt
 
 def edit_secret(
     id: int, name: str, value: str, description: str, user: Users, session: Session
-):
+) -> None:
     # Find secret
     secret = session.execute(
         select(Secrets).where(Secrets.id == id)
