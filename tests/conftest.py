@@ -4,7 +4,6 @@ from sqlalchemy.orm import sessionmaker
 
 from backend.database import Base, Users
 
-
 engine = create_engine("sqlite:///:memory:")
 
 TestingSessionLocal = sessionmaker(bind=engine)
