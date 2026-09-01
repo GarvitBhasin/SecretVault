@@ -7,7 +7,7 @@ from jose import jwt
 from backend.database import Role
 from backend.helpers import now
 from backend.security import (
-    check_credentials,
+    check_input,
     decrypt,
     encode_token,
     encrypt,
@@ -18,82 +18,150 @@ from backend.security import (
     verify_user,
 )
 
-TEST_VALUE = "batman"
 
-# Hashing
-
-
-def test_value_is_hashed():
-    assert hash_password(TEST_VALUE) != TEST_VALUE
+# Password hashing
 
 
-def test_hash_is_verified():
-    stored_hash = hash_password(TEST_VALUE)
-    assert verify_password(TEST_VALUE, stored_hash) is True
+
+def test_password_is_hashed():
+    password = "Password@123"
+
+    hashed_password = hash_password(password)
+
+    assert hashed_password != password
 
 
-def test_hash_is_not_verified():
-    stored_hash = hash_password(TEST_VALUE)
-    assert verify_password("abcd", stored_hash) is False
+def test_correct_password_is_verified():
+    password = "Password@123"
+    hashed_password = hash_password(password)
+
+    verify_password(password, hashed_password)
 
 
-def test_same_passwords_return_diff_hash():
-    assert hash_password(TEST_VALUE) != hash_password(TEST_VALUE)
+def test_incorrect_password_is_rejected():
+    hashed_password = hash_password("Password@123")
+
+    with pytest.raises(HTTPException) as exc:
+        verify_password("WrongPassword@123", hashed_password)
+
+    assert exc.value.status_code == 401
+
+
+def test_same_password_produces_different_hashes():
+    password = "Password@123"
+
+    assert hash_password(password) != hash_password(password)
+
+
+# Input validation
+
+
+def test_matching_strong_password_is_accepted():
+    check_input(
+        password="Password@123",
+        confirm="Password@123",
+    )
+
+
+def test_passwords_that_do_not_match_are_rejected():
+    with pytest.raises(HTTPException) as exc:
+        check_input(
+            password="Password@123",
+            confirm="Different@123",
+        )
+
+    assert exc.value.status_code == 400
+
+
+@pytest.mark.parametrize(
+    "password",
+    [
+        "short1!",
+        "onlyletters",
+        "123456789",
+        "Password123",
+        "Password!",
+        "123456789!",
+    ],
+)
+def test_weak_passwords_are_rejected(password):
+    with pytest.raises(HTTPException) as exc:
+        check_input(password)
+
+    assert exc.value.status_code == 422
+
+
+@pytest.mark.parametrize(
+    "password",
+    [
+        "Password@123",
+        "Strong!Pass1",
+        "Test1234#",
+    ],
+)
+def test_strong_passwords_are_accepted(password):
+    check_input(password)
+
+
+@pytest.mark.parametrize(
+    "role",
+    [
+        Role.VIEWER.value,
+        Role.ADMIN.value,
+        Role.OWNER.value,
+    ],
+)
+def test_valid_roles_are_accepted(role):
+    check_input(
+        password="Password@123",
+        role=role,
+    )
+
+
+@pytest.mark.parametrize(
+    "role",
+    [
+        -1,
+        100,
+        999,
+    ],
+)
+def test_invalid_roles_are_rejected(role):
+    with pytest.raises(HTTPException) as exc:
+        check_input(
+            password="Password@123",
+            role=role,
+        )
+
+    assert exc.value.status_code == 422
 
 
 # Encryption
 
 
 def test_value_is_encrypted():
-    assert TEST_VALUE != encrypt(TEST_VALUE)
+    plaintext = "Secret message"
+
+    ciphertext = encrypt(plaintext)
+
+    assert ciphertext != plaintext
 
 
-def test_decrypt_encrypted_data():
-    encrypted = encrypt(TEST_VALUE)
-    assert decrypt(encrypted) == TEST_VALUE
+def test_encrypted_value_can_be_decrypted():
+    plaintext = "Secret message"
+
+    ciphertext = encrypt(plaintext)
+
+    assert decrypt(ciphertext) == plaintext
 
 
-def test_encrypting_same_data_returns_diff_ciphertext():
-    assert encrypt(TEST_VALUE) != encrypt(TEST_VALUE)
+def test_same_plaintext_produces_different_ciphertext():
+    plaintext = "Secret message"
 
-
-# Input Validation
-
-
-@pytest.mark.parametrize(
-    "credentials",
-    [
-        {
-            "email": "email@gmail.com",
-            "password": "pass@1234",
-            "confirm": "anotherpass@1234",
-        },
-        {"email": "email@gmail.com", "password": "weak", "confirm": "weak"},
-        {"email": "invalid", "password": "abcd@1234", "confirm": "abcd@1234"},
-    ],
-)
-def test_reject_invalid_credentials(credentials):
-    with pytest.raises(HTTPException) as exception:
-        check_credentials(
-            credentials["email"], credentials["password"], credentials["confirm"]
-        )
-
-    assert exception.value.status_code == 400 or exception.value.status_code == 422
-
-
-def test_accept_valid_credentials():
-    check_credentials("email@gmail.com", "password@1234", "password@1234")
+    assert encrypt(plaintext) != encrypt(plaintext)
 
 
 # JWT
-
-
-def test_valid_token_is_verified(db_session, viewer):
-    token = encode_token({"sub": str(viewer.id)})
-
-    user_id = verify_user(token, db_session)
-
-    assert user_id == viewer.id
 
 
 def test_token_is_created():
@@ -103,7 +171,7 @@ def test_token_is_created():
     assert token
 
 
-def test_token_contains_user_id():
+def test_token_contains_correct_user_id():
     token = encode_token({"sub": "123"})
 
     payload = jwt.decode(
@@ -115,11 +183,31 @@ def test_token_contains_user_id():
     assert payload["sub"] == "123"
 
 
-def test_tampered_token(db_session, viewer):
+def test_token_contains_expiry():
+    token = encode_token({"sub": "123"})
+
+    payload = jwt.decode(
+        token,
+        secret_key,
+        algorithms=["HS256"],
+    )
+
+    assert "exp" in payload
+
+
+def test_valid_token_returns_user(db_session, viewer):
+    token = encode_token({"sub": str(viewer.id)})
+
+    user = verify_user(token, db_session)
+
+    assert user.id == viewer.id
+
+
+def test_tampered_token_is_rejected(db_session, viewer):
     token = encode_token({"sub": str(viewer.id)})
 
     parts = token.split(".")
-    parts[1] += "wrongtoken"
+    parts[1] += "tampered"
     tampered_token = ".".join(parts)
 
     with pytest.raises(HTTPException) as exc:
@@ -128,8 +216,8 @@ def test_tampered_token(db_session, viewer):
     assert exc.value.status_code == 401
 
 
-def test_expired_token_rejected(db_session, viewer):
-    token = jwt.encode(
+def test_expired_token_is_rejected(db_session, viewer):
+    expired_token = jwt.encode(
         {
             "sub": str(viewer.id),
             "exp": (now() - timedelta(minutes=1)).timestamp(),
@@ -139,27 +227,61 @@ def test_expired_token_rejected(db_session, viewer):
     )
 
     with pytest.raises(HTTPException) as exc:
+        verify_user(expired_token, db_session)
+
+    assert exc.value.status_code == 401
+
+
+def test_token_with_invalid_user_id_is_rejected(db_session):
+    token = encode_token({"sub": "invalid"})
+
+    with pytest.raises(HTTPException) as exc:
         verify_user(token, db_session)
 
     assert exc.value.status_code == 401
 
 
+def test_token_for_nonexistent_user_is_rejected(db_session):
+    token = encode_token({"sub": "999999"})
+
+    with pytest.raises(HTTPException) as exc:
+        verify_user(token, db_session)
+
+    assert exc.value.status_code == 404
+
+
 # RBAC
 
 
-def test_rbac_access_not_permitted(db_session, viewer, admin):
-    with pytest.raises(HTTPException) as exception:
-        validate_user(db_session, viewer.id, Role.OWNER)
+@pytest.mark.parametrize(
+    ("user_fixture", "minimum_role"),
+    [
+        ("viewer", Role.ADMIN),
+        ("viewer", Role.OWNER),
+        ("admin", Role.OWNER),
+    ],
+)
+def test_insufficient_role_is_rejected(request, user_fixture, minimum_role):
+    user = request.getfixturevalue(user_fixture)
 
-    assert exception.value.status_code == 403
+    with pytest.raises(HTTPException) as exc:
+        validate_user(user, minimum_role)
 
-    with pytest.raises(HTTPException) as exception:
-        validate_user(db_session, admin.id, Role.OWNER)
-
-    assert exception.value.status_code == 403
+    assert exc.value.status_code == 403
 
 
-def test_rbac_access_permitted(db_session, viewer, admin, owner):
-    validate_user(db_session, viewer.id, Role.VIEWER)
-    validate_user(db_session, admin.id, Role.ADMIN)
-    validate_user(db_session, owner.id, Role.OWNER)
+@pytest.mark.parametrize(
+    ("user_fixture", "minimum_role"),
+    [
+        ("viewer", Role.VIEWER),
+        ("admin", Role.VIEWER),
+        ("admin", Role.ADMIN),
+        ("owner", Role.VIEWER),
+        ("owner", Role.ADMIN),
+        ("owner", Role.OWNER),
+    ],
+)
+def test_sufficient_role_is_accepted(request, user_fixture, minimum_role):
+    user = request.getfixturevalue(user_fixture)
+
+    validate_user(user, minimum_role)
