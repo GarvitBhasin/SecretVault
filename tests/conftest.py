@@ -33,7 +33,7 @@ def viewer(db_session):
         username="viewer",
         email="viewer@org.com",
         password_hash="hashed_password",
-        role="viewer",
+        role="VIEWER",
     )
 
     db_session.add(user)
@@ -49,7 +49,7 @@ def admin(db_session):
         username="admin",
         email="admin@org.com",
         password_hash="hashed_password",
-        role="admin",
+        role="ADMIN",
     )
 
     db_session.add(user)
@@ -65,7 +65,7 @@ def owner(db_session):
         username="owner",
         email="owner@org.com",
         password_hash="hashed_password",
-        role="owner",
+        role="OWNER",
     )
 
     db_session.add(user)
