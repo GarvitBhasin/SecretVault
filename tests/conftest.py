@@ -4,7 +4,6 @@ from sqlalchemy.orm import sessionmaker
 
 from backend.database import Base, Users
 
-
 TEST_DATABASE_URL = "sqlite:///:memory:"
 
 engine = create_engine(
