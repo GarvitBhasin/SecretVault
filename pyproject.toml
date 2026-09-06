@@ -11,3 +11,7 @@ packages = ["cli", "backend"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
 ignore = ["B008"]
+
+[pytest]
+env =
+    DB_URL=sqlite:///:memory:
