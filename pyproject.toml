@@ -12,6 +12,5 @@ packages = ["cli", "backend"]
 select = ["E", "F", "I", "B", "UP"]
 ignore = ["B008"]
 
-[pytest]
-env =
-    DB_URL=sqlite:///:memory:
+[tool.pytest-env]
+DB_URL = sqlite:///:memory:
