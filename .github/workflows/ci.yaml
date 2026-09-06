@@ -31,4 +31,8 @@ jobs:
         run: mypy .
 
       - name: Run pytest
+        env:
+          DB_URL: sqlite:///:memory:
+          SECRET_KEY: test-secret-key
+          ENCRYPTION_KEY: test-encryption-key
         run: pytest
