@@ -254,9 +254,9 @@ def test_token_for_nonexistent_user_is_rejected(db_session):
 @pytest.mark.parametrize(
     ("user_fixture", "minimum_role"),
     [
-        ("viewer", Role.ADMIN),
-        ("viewer", Role.OWNER),
-        ("admin", Role.OWNER),
+        ("VIEWER", Role.ADMIN),
+        ("VIEWER", Role.OWNER),
+        ("ADMIN", Role.OWNER),
     ],
 )
 def test_insufficient_role_is_rejected(request, user_fixture, minimum_role):
@@ -271,12 +271,12 @@ def test_insufficient_role_is_rejected(request, user_fixture, minimum_role):
 @pytest.mark.parametrize(
     ("user_fixture", "minimum_role"),
     [
-        ("viewer", Role.VIEWER),
-        ("admin", Role.VIEWER),
-        ("admin", Role.ADMIN),
-        ("owner", Role.VIEWER),
-        ("owner", Role.ADMIN),
-        ("owner", Role.OWNER),
+        ("VIEWER", Role.VIEWER),
+        ("ADMIN", Role.VIEWER),
+        ("ADMIN", Role.ADMIN),
+        ("OWNER", Role.VIEWER),
+        ("OWNER", Role.ADMIN),
+        ("OWNER", Role.OWNER),
     ],
 )
 def test_sufficient_role_is_accepted(request, user_fixture, minimum_role):
